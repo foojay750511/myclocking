@@ -11,13 +11,16 @@
         .header h1 { font-size: 22px; margin-bottom: 5px; }
         .header p { font-size: 13px; opacity: 0.8; }
         .container { padding: 15px; max-width: 700px; margin: 0 auto; }
+        
         .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #eef2f5; }
         .card h3 { margin-bottom: 15px; font-size: 16px; color: #1e3c72; border-left: 4px solid #2a5298; padding-left: 8px; }
         
+        /* 1. 勞基法請假資訊規範區 */
         .law-box { background-color: #fffaf0; border: 1px solid #feebc8; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
         .law-title { font-size: 14px; font-weight: bold; color: #dd6b20; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
-        .law-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; color: #4a5568; }
-        .law-item { background: white; padding: 6px 10px; border-radius: 4px; border: 1px solid #fbd38d; }
+        .law-grid { display: grid; grid-template-columns: repeat(1, 1fr); gap: 6px; font-size: 12px; color: #4a5568; }
+        @media(min-width: 480px) { .law-grid { grid-template-columns: repeat(2, 1fr); } }
+        .law-item { background: white; padding: 8px 10px; border-radius: 4px; border: 1px solid #fbd38d; line-height: 1.4; }
 
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #4a5568; }
@@ -49,32 +52,35 @@
         .data-table th, .data-table td { border: 1px solid #e2e8f0; padding: 10px; vertical-align: middle; }
         .data-table th { background-color: #f7fafc; color: #4a5568; font-weight: bold; }
         
-        .status-badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; display: inline-block; }
-        .status-badge.status-approved { background-color: #38a169; } 
-        .status-badge.status-rejected { background-color: #e53e3e; } 
-        .status-badge.status-pending { background-color: #dd6b20; }  
+        /* 4、5、6. 精準狀態標籤顏色管理 */
+        .status-badge { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; display: inline-block; text-align: center; }
+        /* 4. 已核准 / 已打卡 (綠色) */
+        .status-approved, .status-clocked { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        /* 5. 退回 (紅色) */
+        .status-rejected { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        /* 6. 送審中 (橘色) */
+        .status-pending { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .filter-box { background: #f7fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; }
-        .detail-block { line-height: 1.6; font-size: 13px; color: #2d3748; }
         .login-success-tag { background-color: #c6f6d5; color: #22543d; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 5px; }
-        .notice-text { color: #e53e3e; font-size: 13px; margin-bottom: 12px; display: block; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>2026 欄位精準校正版</p>
+        <p>勞基法修正與午休時數扣除版</p>
     </div>
 
     <div class="container">
         <div class="law-box">
-            <div class="law-title">⚖️ 內部差勤排班與規範摘要</div>
+            <div class="law-title">⚖️ 勞基法法定假別與內部規範</div>
             <div class="law-grid">
-                <div class="law-item"><strong>🏠 請假機制：</strong>已取消半小時與一小時的硬性進位限制。</div>
-                <div class="law-item"><strong>🚫 單日上限：</strong>特休、請假單日上限最高扣 <strong>8 小時</strong>。</div>
-                <div class="law-item"><strong>⏰ 常規時數：</strong>每日 8 小時（08:00~17:00 含中午1小時休息）。</div>
+                <div class="law-item"><strong>🌴 特別休假：</strong>依年資給假（半年3天、1年7天等），工資照給。</div>
+                <div class="law-item"><strong>🤒 普通傷病假：</strong>未住院者1年內內上限 30 天，薪資折半發給。</div>
+                <div class="law-item"><strong>🏠 事假：</strong>1 年內合計不得超過 14 天，期間不給工資。</div>
+                <div class="law-item"><strong>⏰ 午休扣除機制：</strong>請假跨越 <strong>12:00 ~ 13:00</strong> 將自動扣除 1 小時。</div>
             </div>
         </div>
 
@@ -126,6 +132,7 @@
             <div id="page-clock" class="page active">
                 <div class="card">
                     <h3>⏰ 今日出勤打卡 (含GPS定位)</h3>
+                    <div id="clock-loading" style="display:none; text-align:center; padding:10px; color:#2a5298;">打卡通訊中，請稍候...</div>
                     <button class="btn btn-success" onclick="submitClock('上班')">🌞 上班打卡</button>
                     <button class="btn btn-danger" onclick="submitClock('下班')">🌜 下班打卡</button>
                 </div>
@@ -157,8 +164,8 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>共計時數</label>
-                        <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
+                        <label>共計時數 (已扣除中午 12 點午休)</label>
+                        <input type="text" id="leave-hours" class="form-control" style="background-color: #edf2f7; font-weight: bold; color: #2b6cb0;" readonly placeholder="自動計算">
                     </div>
                     <div class="form-group">
                         <label>請假事由 (選填)</label>
@@ -384,11 +391,10 @@
             }
         }
 
-        // 優化時間顯示，精簡世界標準時間
         function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
             let s = dtStr.toString().trim();
-            if (s.includes('GMT') || s.includes('台北標準時間')) {
+            if (s.includes('GMT') || s.includes('台北標準時間') || s.includes('Z')) {
                 try {
                     const d = new Date(s);
                     if (!isNaN(d.getTime())) {
@@ -405,28 +411,58 @@
             return s.length > 16 ? s.substring(0, 16) : s;
         }
 
+        // 2. 中午12點休息部分自動扣除計算邏輯
         function calculateLeaveHours() {
             const d1 = document.getElementById('leave-start-date').value;
             const t1 = document.getElementById('leave-start-time').value;
             const d2 = document.getElementById('leave-end-date').value;
             const t2 = document.getElementById('leave-end-time').value;
             if (!d1 || !t1 || !d2 || !t2) return;
+
             const start = new Date(d1 + 'T' + t1);
             const end = new Date(d2 + 'T' + t2);
             let diffMs = end - start;
             if (diffMs <= 0) { alert("❌ 結束時間必須大於開始時間！"); return; }
-            let rawHours = diffMs / 3600000;
-            document.getElementById('leave-hours').value = rawHours.toFixed(1) + " 小時";
+            
+            let totalHours = diffMs / 3600000;
+
+            // 跨午休扣除精準判斷：只要請假範圍涵蓋了 12:00 ~ 13:00 區間，自動扣除1小時休息
+            const noonStart = new Date(d1 + 'T12:00:00');
+            const noonEnd = new Date(d1 + 'T13:00:00');
+            if (start <= noonStart && end >= noonEnd) {
+                totalHours -= 1;
+            }
+
+            document.getElementById('leave-hours').value = (totalHours > 0 ? totalHours.toFixed(1) : "0.0") + " 小時";
         }
 
         function submitClock(type) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const locStr = pos.coords.latitude.toFixed(6) + ", " + pos.coords.longitude.toFixed(6);
-                const payload = { action: "clock", type: type, location: locStr, empId: loggedInUser.id, empName: loggedInUser.name };
-                fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res => res.json()).then(res => {
-                    alert(res.message);
+            document.getElementById('clock-loading').style.display = "block";
+            const sendClockRequest = (locationString) => {
+                const payload = { action: "clock", type: type, location: locationString, empId: loggedInUser.id, empName: loggedInUser.name };
+                fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) })
+                .then(res => res.json()).then(res => {
+                    document.getElementById('clock-loading').style.display = "none";
+                    alert("🎉 " + res.message);
+                    // 3. 需求修正：不自動跳轉到歷史查詢畫面，保留在原打卡頁面
+                }).catch(err => {
+                    document.getElementById('clock-loading').style.display = "none";
+                    alert("❌ 連線失敗，請確認網路或 GAS 佈署網址。");
                 });
-            }, (err) => { alert("GPS定位失敗，仍為您嘗試無定位打卡..."); }, { timeout: 5000 });
+            };
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const locStr = pos.coords.latitude.toFixed(6) + ", " + pos.coords.longitude.toFixed(6);
+                        sendClockRequest(locStr);
+                    },
+                    (err) => { sendClockRequest("未授權定位/無法定位"); },
+                    { timeout: 4000 }
+                );
+            } else {
+                sendClockRequest("瀏覽器不支援定位");
+            }
         }
 
         function submitLeave() {
@@ -435,7 +471,7 @@
             const d2 = document.getElementById('leave-end-date').value;
             const t2 = document.getElementById('leave-end-time').value;
             const hours = document.getElementById('leave-hours').value;
-            if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整請假時間！"); return; }
+            if(!d1 || !t1 || !d2 || !t2) { alert("❌ 請填寫完整請假時間！"); return; }
             
             const payload = { 
                 action: "leave", 
@@ -447,8 +483,14 @@
                 empName: loggedInUser.name 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
-                alert("🎉 請假單已成功送出！");
-                switchPage('history');
+                alert("🎉 " + res.message);
+                // 3. 需求修正：送出資訊時不用跳到查詢畫面，清空輸入框即可
+                document.getElementById('leave-start-date').value = "";
+                document.getElementById('leave-start-time').value = "";
+                document.getElementById('leave-end-date').value = "";
+                document.getElementById('leave-end-time').value = "";
+                document.getElementById('leave-hours').value = "";
+                document.getElementById('leave-reason').value = "";
             });
         }
 
@@ -467,8 +509,11 @@
                 empName: loggedInUser.name 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
-                alert("🎉 加班申報成功！");
-                switchPage('history');
+                alert("🎉 " + res.message);
+                // 3. 需求修正：送出資訊時不用跳到查詢畫面
+                document.getElementById('ot-date').value = "";
+                document.getElementById('ot-hours').value = "";
+                document.getElementById('ot-reason').value = "";
             });
         }
 
@@ -494,18 +539,30 @@
             
             let rowsHtml = "";
             filtered.forEach(item => {
-                let badgeClass = item.status === "核准" ? "status-approved" : (item.status === "退回" ? "status-rejected" : "status-pending");
+                // 4、5、6. 精準狀態標籤樣式分配
+                let badgeClass = "status-pending"; // 6. 預設橘色審核中
+                if (item.status === "核准" || item.status === "已打卡") {
+                    badgeClass = "status-approved"; // 4. 綠色已核准/已打卡
+                } else if (item.status === "退回") {
+                    badgeClass = "status-rejected"; // 5. 紅色退回
+                }
+
                 let checkboxHtml = (currentMode === 'admin' && item.status === '送審中') ? `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>` : "<td></td>";
 
-                let contentHtml = item.mainType === "加班" ? 
-                    `<strong>[加班]</strong> 日期: ${cleanDateTimeStr(item.date)}<br>時數: ${item.hours}<br>說明: ${item.reason || '無'}` :
-                    `<strong>[請假] ${item.type}</strong><br>起: ${cleanDateTimeStr(item.startStr)}<br>迄: ${cleanDateTimeStr(item.endStr)}<br>事由: ${item.reason || '無'}`;
+                let contentHtml = "";
+                if (item.mainType === "打卡") {
+                    contentHtml = `<strong>[打卡紀錄]</strong> 類別: ${item.type}<br>時間: ${cleanDateTimeStr(item.time)}<br><span style="color:#718096;">位置: ${item.location}</span>`;
+                } else if (item.mainType === "加班") {
+                    contentHtml = `<strong>[加班]</strong> 日期: ${cleanDateTimeStr(item.date)} (時數: ${item.hours})<br>說明: ${item.reason || '無'}`;
+                } else {
+                    contentHtml = `<strong>[請假] ${item.type}</strong><br>起: ${cleanDateTimeStr(item.startStr)}<br>迄: ${cleanDateTimeStr(item.endStr)}<br>事由: ${item.reason || '無'}`;
+                }
 
                 rowsHtml += `<tr>
                     ${checkboxHtml}
                     <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:10px;">${item.empId}</span></td>
                     <td>${contentHtml}</td>
-                    <td><span class="status-badge ${badgeClass}">${item.status}</span><br><span style="font-size:10px;color:#718096;">${item.reviewer || ''}</span></td>
+                    <td><span class="status-badge ${badgeClass}">${item.status === '送審中' ? '審核中' : item.status}</span><br><span style="font-size:10px;color:#718096;display:block;margin-top:4px;">${item.reviewer || ''}</span></td>
                 </tr>`;
             });
             DOM.historyData.innerHTML = rowsHtml || `<tr><td colspan="4" style="text-align:center;padding:20px;color:#999;">暫無紀錄</td></tr>`;
