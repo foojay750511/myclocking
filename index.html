@@ -14,7 +14,7 @@
         .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #eef2f5; }
         .card h3 { margin-bottom: 15px; font-size: 16px; color: #1e3c72; border-left: 4px solid #2a5298; padding-left: 8px; }
         
-        /* 勞基法宣導專區樣式 */
+        /* 勞基法與內部請假規則宣導專區 */
         .law-box { background-color: #fffaf0; border: 1px solid #feebc8; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
         .law-title { font-size: 14px; font-weight: bold; color: #dd6b20; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
         .law-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; color: #4a5568; }
@@ -40,7 +40,6 @@
         .nav-item.active { color: #2a5298; font-weight: bold; }
         .nav-icon { font-size: 20px; margin-bottom: 2px; }
         
-        /* 鎖定遮罩與隱藏頁面 */
         .page { display: none; }
         .page.active { display: block; }
         .locked-notice { text-align: center; padding: 40px 20px; color: #718096; font-size: 14px; }
@@ -72,14 +71,14 @@
     <div class="container">
         
         <div class="law-box">
-            <div class="law-title">⚖️ 2026 勞基法常用請假規則摘要</div>
+            <div class="law-title">⚖️ 2026 勞基法與請假規範摘要</div>
             <div class="law-grid">
-                <div class="law-item"><strong>🌴 特休假：</strong>滿半年3天；1年7天；2年10天；3年14天；5年15天。</div>
-                <div class="law-item"><strong>🤒 病假：</strong>未住院者1年內累計可請30天 (半薪)。</div>
-                <div class="law-item"><strong>🏠 事假：</strong>1年內累計可請14天 (無薪)。</div>
-                <div class="law-item"><strong>💍 婚假：</strong>可請8天 (薪資照給，可分三個月內請畢)。</div>
-                <div class="law-item"><strong>🍼 產檢/陪產檢假：</strong>各7天 (薪資照給)。</div>
-                <div class="law-item"><strong>⏰ 常規時數：</strong>每日8小時，每週40小時。</div>
+                <div class="law-item"><strong>🏠 事假 / 🤒 病假：</strong>最小請假計算單位為 <strong>1 小時</strong>。</div>
+                <div class="law-item"><strong>🌴 特休 / 💍 婚假：</strong>最小請假計算單位為 <strong>0.5 小時</strong>。</div>
+                <div class="law-item"><strong>🚫 單日上限：</strong>特休、請假單日上限最高扣 <strong>8 小時</strong>。</div>
+                <div class="law-item"><strong>⏰ 常規時數：</strong>每日 8 小時（08:00~17:00 含中午1小時休息）。</div>
+                <div class="law-item"><strong>🌴 特休假天數：</strong>滿半年3天；1年7天；2年10天；3年14天。</div>
+                <div class="law-item"><strong>🤒 病假薪資：</strong>1年內未住院累計可請30天，薪資折半給付。</div>
             </div>
         </div>
 
@@ -91,14 +90,14 @@
                     <label>選擇員工姓名</label>
                     <select id="emp-select" class="form-control" onchange="handleEmpSelectChange()">
                         <option value="">-- 請選擇您的姓名 --</option>
-                        </select>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>員工工號 (自動帶入)</label>
                     <input type="text" id="emp-id" class="form-control" placeholder="請先選擇姓名" disabled>
                 </div>
                 <div class="form-group">
-                    <label>登入驗證密碼 (預設為生日後四碼)</label>
+                    <label>登入驗證密碼 (預設為生日後四碼，例：0511)</label>
                     <input type="password" id="emp-password" class="form-control" placeholder="請輸入4位數密碼" pattern="\d*" inputmode="numeric">
                 </div>
                 <button class="btn btn-primary" onclick="executeEmployeeLogin()">🔓 驗證並登入系統</button>
@@ -143,7 +142,7 @@
                     <h3>🌴 線上請假 / 特休申請</h3>
                     <div class="form-group">
                         <label>假別選擇</label>
-                        <select id="leave-type" class="form-control">
+                        <select id="leave-type" class="form-control" onchange="calculateHours('leave')">
                             <option value="特休">特休 (薪資照給)</option>
                             <option value="病假">病假 (半薪)</option>
                             <option value="事假">事假 (無薪)</option>
@@ -165,7 +164,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>共計時數 (已自動扣除中午1小時休息)</label>
+                        <label>共計時數 (已依規範單位轉換且單日上限 8 小時)</label>
                         <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                     </div>
                     <div class="form-group">
@@ -274,20 +273,29 @@
         // ⚠️ 請填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
-        // 👥 員工資料名冊庫 (張先生，您可以在此欄自行新增、刪除或修改員工與其密碼設定)
+        // 👥 員工資料名冊庫（已成功合併 14 位最新名冊）
         const EMPLOYEE_DATABASE = [
-            { id: "A001", name: "張富傑", password: "0511" },
-            { id: "A002", name: "廖惠萍", password: "1113" },
-            { id: "A003", name: "李小明", password: "0812" },
-            { id: "A004", name: "陳阿華", password: "1130" }
+            { id: "A001", name: "賴柏全", password: "0726" },
+            { id: "A002", name: "廖彥珵", password: "0911" },
+            { id: "A003", name: "廖惠萍", password: "1113" },
+            { id: "A004", name: "張富傑", password: "0511" },
+            { id: "A005", name: "陳永訓", password: "1228" },
+            { id: "A006", name: "林美君", password: "1228" },
+            { id: "A007", name: "鄭鑫漢", password: "1013" },
+            { id: "A008", name: "許百隆", password: "0427" },
+            { id: "A009", name: "王妙鮮", password: "0519" },
+            { id: "A010", name: "張乃云", password: "0130" },
+            { id: "A011", name: "朱章鴻", password: "0911" },
+            { id: "A012", name: "陳祝賢", password: "0428" },
+            { id: "A013", name: "陳秋如", password: "1111" },
+            { id: "A014", name: "洪翠伶", password: "2222" }
         ];
 
-        let loggedInUser = null; // 快取目前成功登入的員工資料
+        let loggedInUser = null; 
         let allFetchedRecords = []; 
 
         document.addEventListener("DOMContentLoaded", function() {
             initEmployeeSelectJson();
-            // 檢查本地快取，看員工上次是否已經登入過
             const cachedId = localStorage.getItem('login_session_id');
             if (cachedId) {
                 const user = EMPLOYEE_DATABASE.find(u => u.id === cachedId);
@@ -298,7 +306,6 @@
             }
         });
 
-        // 初始化姓名下拉選單
         function initEmployeeSelectJson() {
             const selectEl = document.getElementById('emp-select');
             EMPLOYEE_DATABASE.forEach(emp => {
@@ -309,14 +316,12 @@
             });
         }
 
-        // 下拉選單選定姓名後，自動帶入工號
         function handleEmpSelectChange() {
             const selectedId = document.getElementById('emp-select').value;
             document.getElementById('emp-id').value = selectedId;
-            document.getElementById('emp-password').value = ""; // 清空密碼欄
+            document.getElementById('emp-password').value = ""; 
         }
 
-        // 驗證登入
         function executeEmployeeLogin() {
             const selectedId = document.getElementById('emp-select').value;
             const inputPwd = document.getElementById('emp-password').value.trim();
@@ -332,32 +337,28 @@
                 localStorage.setItem('login_session_id', matchedUser.id);
                 applyLoginSuccessState();
             } else {
-                alert("❌ 密碼錯誤！請重新輸入（提示：生日後四碼）。");
+                alert("❌ 密碼錯誤！請重新輸入。");
                 document.getElementById('emp-password').value = "";
             }
         }
 
-        // 登入成功的介面切換
         function applyLoginSuccessState() {
             document.getElementById('login-form-block').style.display = "none";
             document.getElementById('login-success-block').style.display = "block";
             document.getElementById('user-display-name').innerText = loggedInUser.name;
             document.getElementById('user-display-id').innerText = loggedInUser.id;
             
-            // 移除鎖定擋板，顯現功能
             document.getElementById('login-gate-shield').style.display = "none";
             document.getElementById('unlocked-features-zone').style.display = "block";
             
             switchPage('clock');
         }
 
-        // 登出系統
         function executeEmployeeLogout() {
             if(!confirm("確定要登出系統嗎？")) return;
             localStorage.removeItem('login_session_id');
             loggedInUser = null;
             
-            // 回復未登入外觀
             document.getElementById('login-form-block').style.display = "block";
             document.getElementById('login-success-block').style.display = "none";
             document.getElementById('emp-select').value = "";
@@ -365,7 +366,6 @@
             document.getElementById('emp-password').value = "";
             document.getElementById('user-role').value = "user";
             
-            // 啟動鎖定擋板
             document.getElementById('login-gate-shield').style.display = "block";
             document.getElementById('unlocked-features-zone').style.display = "none";
             document.getElementById('nav-admin-btn').style.display = "none";
@@ -397,7 +397,6 @@
         }
 
         function switchPage(pageId) {
-            // 如果未登入，強制待在鎖定畫面，不切換分頁功能
             if(!loggedInUser && pageId !== 'clock') {
                 alert("🔒 請先完成登入驗證！");
                 return;
@@ -462,35 +461,48 @@
                 return;
             }
 
-            let totalHours = diffMs / (1000 * 60 * 60);
-
+            let rawHours = diffMs / (1000 * 60 * 60);
             let startMin = start.getHours() * 60 + start.getMinutes();
             let endMin = end.getHours() * 60 + end.getMinutes();
             
             if (d1 === d2) {
                 if (startMin <= 12 * 60 && endMin >= 13 * 60) {
-                    totalHours -= 1;
-                }
-                else if (startMin <= 12 * 60 && endMin > 12 * 60 && endMin < 13 * 60) {
-                    let overlapMin = endMin - (12 * 60);
-                    totalHours -= (overlapMin / 60);
-                }
-                else if (startMin > 12 * 60 && startMin < 13 * 60 && endMin >= 13 * 60) {
-                    let overlapMin = (13 * 60) - startMin;
-                    totalHours -= (overlapMin / 60);
-                }
-                else if (startMin >= 12 * 60 && endMin <= 13 * 60) {
-                    totalHours = 0;
+                    rawHours -= 1;
+                } else if (startMin <= 12 * 60 && endMin > 12 * 60 && endMin < 13 * 60) {
+                    rawHours -= ((endMin - 12 * 60) / 60);
+                } else if (startMin > 12 * 60 && startMin < 13 * 60 && endMin >= 13 * 60) {
+                    rawHours -= ((13 * 60 - startMin) / 60);
+                } else if (startMin >= 12 * 60 && endMin <= 13 * 60) {
+                    rawHours = 0;
                 }
             } else {
                 let daysDiff = Math.floor((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24));
-                totalHours -= (daysDiff * 1); 
-                if (startMin <= 12 * 60) totalHours -= 1;
-                if (endMin >= 13 * 60) totalHours -= 1;
+                rawHours -= (daysDiff * 1); 
+                if (startMin <= 12 * 60) rawHours -= 1;
+                if (endMin >= 13 * 60) rawHours -= 1;
+            }
+            if(rawHours < 0) rawHours = 0;
+
+            let finalHours = rawHours;
+            if (prefix === 'leave') {
+                const leaveType = document.getElementById('leave-type').value;
+                if (leaveType === '事假' || leaveType === '病假') {
+                    finalHours = Math.ceil(finalHours);
+                } else {
+                    finalHours = Math.ceil(finalHours * 2) / 2;
+                }
+
+                let dayCount = 1;
+                if (d1 !== d2) {
+                    dayCount = Math.floor((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24)) + 1;
+                }
+                let maxAllowedHours = dayCount * 8;
+                if (finalHours > maxAllowedHours) {
+                    finalHours = maxAllowedHours;
+                }
             }
 
-            if(totalHours < 0) totalHours = 0;
-            document.getElementById(prefix + '-hours').value = totalHours.toFixed(1) + " 小時";
+            document.getElementById(prefix + '-hours').value = finalHours.toFixed(1) + " 小時";
         }
 
         function clearFormFields(prefix) {
