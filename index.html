@@ -50,21 +50,22 @@
         .data-table th { background-color: #f7fafc; color: #4a5568; font-weight: bold; }
         
         .status-badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; display: inline-block; }
-        .status-badge.status-approved { background-color: #38a169; } /* 核准、已打卡：綠色 */
-        .status-badge.status-rejected { background-color: #e53e3e; } /* 退回：紅色 */
-        .status-badge.status-pending { background-color: #dd6b20; }  /* 送審中：橘色 */
+        .status-badge.status-approved { background-color: #38a169; } 
+        .status-badge.status-rejected { background-color: #e53e3e; } 
+        .status-badge.status-pending { background-color: #dd6b20; }  
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .filter-box { background: #f7fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; }
         .detail-block { line-height: 1.6; font-size: 13px; color: #2d3748; }
         .login-success-tag { background-color: #c6f6d5; color: #22543d; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 5px; }
+        .notice-text { color: #e53e3e; font-size: 13px; margin-bottom: 12px; display: block; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>2026 勞基法整合 & 速度優化版</p>
+        <p>2026 欄位校正 & 速度最優化版</p>
     </div>
 
     <div class="container">
@@ -140,7 +141,7 @@
                     <h3>🌴 線上請假 / 特休申請</h3>
                     <div class="form-group">
                         <label>假別選擇</label>
-                        <select id="leave-type" class="form-control" onchange="calculateHours('leave')">
+                        <select id="leave-type" class="form-control" onchange="calculateLeaveHours()">
                             <option value="特休">特休 (薪資照給)</option>
                             <option value="病假">病假 (半薪)</option>
                             <option value="事假">事假 (無薪)</option>
@@ -148,21 +149,21 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>日期 + 起始時間</label>
+                        <label>開始時間</label>
                         <div class="datetime-group">
-                            <input type="date" id="leave-start-date" class="form-control" onchange="calculateHours('leave')">
-                            <input type="time" id="leave-start-time" class="form-control" onchange="calculateHours('leave')">
+                            <input type="date" id="leave-start-date" class="form-control" onchange="calculateLeaveHours()">
+                            <input type="time" id="leave-start-time" class="form-control" onchange="calculateLeaveHours()">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>日期 + 結束時間</label>
+                        <label>結束時間</label>
                         <div class="datetime-group">
-                            <input type="date" id="leave-end-date" class="form-control" onchange="calculateHours('leave')">
-                            <input type="time" id="leave-end-time" class="form-control" onchange="calculateHours('leave')">
+                            <input type="date" id="leave-end-date" class="form-control" onchange="calculateLeaveHours()">
+                            <input type="time" id="leave-end-time" class="form-control" onchange="calculateLeaveHours()">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>共計時數 (已自動扣除中午1小時休息，單日上限 8 小時)</label>
+                        <label>共計時數 (已自動扣除中午1小時，單日最高 8 小時)</label>
                         <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                     </div>
                     <div class="form-group">
@@ -175,28 +176,20 @@
 
             <div id="page-overtime" class="page">
                 <div class="card">
-                    <h3>💪 加班延長工時申報</h3>
+                    <h3>💪 加班(延長工時)申報</h3>
+                    <span class="notice-text">⚠️ 依勞基法規定，每日總工時不得超過 12 小時。</span>
+                    
                     <div class="form-group">
-                        <label>日期 + 起始時間</label>
-                        <div class="datetime-group">
-                            <input type="date" id="ot-start-date" class="form-control" onchange="calculateHours('ot')">
-                            <input type="time" id="ot-start-time" class="form-control" onchange="calculateHours('ot')">
-                        </div>
+                        <label>加班日期</label>
+                        <input type="date" id="ot-date" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label>日期 + 結束時間</label>
-                        <div class="datetime-group">
-                            <input type="date" id="ot-end-date" class="form-control" onchange="calculateHours('ot')">
-                            <input type="time" id="ot-end-time" class="form-control" onchange="calculateHours('ot')">
-                        </div>
+                        <label>預計時數 (小時)</label>
+                        <input type="number" id="ot-hours" class="form-control" placeholder="例如：2" step="0.5" min="0">
                     </div>
                     <div class="form-group">
-                        <label>共計時數 (已自動扣除中午1小時休息)</label>
-                        <input type="text" id="ot-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
-                    </div>
-                    <div class="form-group">
-                        <label>工作內容概述 (選填)</label>
-                        <input type="text" id="ot-reason" class="form-control" placeholder="請填寫加班處理的工作內容">
+                        <label>加班內容概述 (選填)</label>
+                        <input type="text" id="ot-reason" class="form-control" placeholder="請簡述加班處理業務">
                     </div>
                     <button class="btn btn-primary" onclick="submitOvertime()">送出加班申報</button>
                 </div>
@@ -285,17 +278,14 @@
             { id: "A011", name: "朱章鴻", password: "0911" },
             { id: "A012", name: "陳祝賢", password: "0428" },
             { id: "A013", name: "陳秋如", password: "1111" },
-            { id: "A014", name: "洪翠伶", password: "2222" }
+            { id: "A014", name: "洪翠伶", password: "0314" }
         ];
 
         let loggedInUser = null; 
         let allFetchedRecords = []; 
-
-        // ⚡ 全域速度優化快取元件
         const DOM = {};
 
         document.addEventListener("DOMContentLoaded", function() {
-            // 初始化快取
             DOM.loginForm = document.getElementById('login-form-block');
             DOM.loginSuccess = document.getElementById('login-success-block');
             DOM.userName = document.getElementById('user-display-name');
@@ -373,7 +363,6 @@
             if(!confirm("確定要登出系統嗎？")) return;
             localStorage.removeItem('login_session_id');
             loggedInUser = null;
-            
             DOM.loginForm.style.display = "block";
             DOM.loginSuccess.style.display = "none";
             DOM.empSelect.value = "";
@@ -412,7 +401,6 @@
                 alert("🔒 請先完成登入驗證！");
                 return;
             }
-
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             
@@ -425,7 +413,6 @@
             } else {
                 const targetPage = document.getElementById('page-' + pageId);
                 if(targetPage) targetPage.classList.add('active');
-                
                 DOM.batchPanel.style.display = "none";
                 DOM.thSelect.style.display = "none";
                 
@@ -440,18 +427,33 @@
             }
         }
 
+        // ⚡ 超強安全日期字串格式化（直接進行字串過濾，避免手機瀏覽器時區轉換少 8 小時）
         function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
             let s = dtStr.toString().trim();
-            s = s.replace('T', ' ').replace('.000Z', '').replace('Z', '');
+            
+            // 處理常規的 JavaScript Date 轉出字串 (如 Tue Jun 23 2026 14:00:00 GMT+0800)
+            if (s.includes('GMT')) {
+                const parts = s.split(' ');
+                if (parts.length >= 5) {
+                    // 嘗試抓取日期與時間部分
+                    const timePart = parts[4].substring(0, 5); // 14:00
+                    return s.substring(0, 16); 
+                }
+            }
+            // 處理 ISO 格式 (2026-06-23T06:00:00.000Z) -> 改為直接裁切，不經過 timezone 運算
+            if (s.includes('T')) {
+                s = s.replace('T', ' ');
+            }
+            s = s.replace('.000Z', '').replace('Z', '');
             return s.length > 16 ? s.substring(0, 16) : s;
         }
 
-        function calculateHours(prefix) {
-            const d1 = document.getElementById(prefix + '-start-date').value;
-            const t1 = document.getElementById(prefix + '-start-time').value;
-            const d2 = document.getElementById(prefix + '-end-date').value;
-            const t2 = document.getElementById(prefix + '-end-time').value;
+        function calculateLeaveHours() {
+            const d1 = document.getElementById('leave-start-date').value;
+            const t1 = document.getElementById('leave-start-time').value;
+            const d2 = document.getElementById('leave-end-date').value;
+            const t2 = document.getElementById('leave-end-time').value;
             
             if (!d1 || !t1 || !d2 || !t2) return;
             
@@ -461,9 +463,9 @@
             
             if (diffMs <= 0) {
                 alert("❌ 結束時間必須大於開始時間！");
-                document.getElementById(prefix + '-end-date').value = "";
-                document.getElementById(prefix + '-end-time').value = "";
-                document.getElementById(prefix + '-hours').value = "";
+                document.getElementById('leave-end-date').value = "";
+                document.getElementById('leave-end-time').value = "";
+                document.getElementById('leave-hours').value = "";
                 return;
             }
 
@@ -489,24 +491,11 @@
             }
             if(rawHours < 0) rawHours = 0;
 
-            let finalHours = rawHours;
-            if (prefix === 'leave') {
-                let dayCount = (d1 === d2) ? 1 : Math.floor((new Date(d2) - new Date(d1)) / 86400000) + 1;
-                let maxAllowedHours = dayCount * 8;
-                if (finalHours > maxAllowedHours) finalHours = maxAllowedHours;
-            }
+            let dayCount = (d1 === d2) ? 1 : Math.floor((new Date(d2) - new Date(d1)) / 86400000) + 1;
+            let maxAllowedHours = dayCount * 8;
+            if (rawHours > maxAllowedHours) rawHours = maxAllowedHours;
 
-            document.getElementById(prefix + '-hours').value = finalHours.toFixed(1) + " 小時";
-        }
-
-        function clearFormFields(prefix) {
-            document.getElementById(prefix + '-start-date').value = "";
-            document.getElementById(prefix + '-start-time').value = "";
-            document.getElementById(prefix + '-end-date').value = "";
-            document.getElementById(prefix + '-end-time').value = "";
-            document.getElementById(prefix + '-hours').value = "";
-            const reasonField = document.getElementById(prefix + '-reason');
-            if(reasonField) reasonField.value = "";
+            document.getElementById('leave-hours').value = rawHours.toFixed(1) + " 小時";
         }
 
         function submitClock(type) {
@@ -532,54 +521,60 @@
             const d2 = document.getElementById('leave-end-date').value;
             const t2 = document.getElementById('leave-end-time').value;
             const hours = document.getElementById('leave-hours').value;
-            const reason = document.getElementById('leave-reason').value; // 可空白
+            const userReason = document.getElementById('leave-reason').value.trim();
             
             if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整請假起訖時間！"); return; }
+            
+            // 💡 關鍵修正：因為試算表沒有「時數」欄位，直接將時數與事由包在一起，避免欄位錯位！
+            const combinedReason = `[共計:${hours}] ${userReason}`;
             
             const payload = { 
                 action: "leave", 
                 type: document.getElementById('leave-type').value, 
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
-                hours: hours,
-                reason: reason || "", 
+                reason: combinedReason, 
                 empId: loggedInUser.id, 
                 empName: loggedInUser.name 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 if(res.status==='success'){ 
-                    alert("🎉 差勤申請單已成功送出！"); 
-                    clearFormFields('leave'); 
-                    // 💡 應需求：移除自動切換頁面邏輯，停留在原本分頁
+                    alert("🎉 差勤請假單已成功送出！"); 
+                    document.getElementById('leave-start-date').value = "";
+                    document.getElementById('leave-start-time').value = "";
+                    document.getElementById('leave-end-date').value = "";
+                    document.getElementById('leave-end-time').value = "";
+                    document.getElementById('leave-hours').value = "";
+                    document.getElementById('leave-reason').value = "";
                 }
             });
         }
 
         function submitOvertime() {
             if(!loggedInUser) return;
-            const d1 = document.getElementById('ot-start-date').value;
-            const t1 = document.getElementById('ot-start-time').value;
-            const d2 = document.getElementById('ot-end-date').value;
-            const t2 = document.getElementById('ot-end-time').value;
-            const hours = document.getElementById('ot-hours').value;
-            const reason = document.getElementById('ot-reason').value; // 可空白
+            const otDate = document.getElementById('ot-date').value;
+            const otHours = document.getElementById('ot-hours').value;
+            const otReason = document.getElementById('ot-reason').value.trim();
             
-            if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整加班起訖時間！"); return; }
+            if(!otDate) { alert("❌ 請選擇加班日期！"); return; }
+            if(!otHours || otHours <= 0) { alert("❌ 請輸入有效的預計加班時數！"); return; }
             
+            // 💡 完全對應試算表欄位的數據結構包裝
             const payload = { 
                 action: "overtime", 
-                start: d1 + " " + t1, 
-                end: d2 + " " + t2, 
-                hours: hours,
-                reason: reason || "", 
+                date: otDate, 
+                hours: otHours + " 小時",
+                reason: otReason, 
                 empId: loggedInUser.id, 
                 empName: loggedInUser.name 
             };
+            
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 if(res.status==='success'){ 
                     alert("🎉 加班申報單已成功送出！"); 
-                    clearFormFields('ot'); 
-                    // 💡 應需求：移除自動切換頁面邏輯，停留在原本分頁
+                    document.getElementById('ot-date').value = "";
+                    document.getElementById('ot-hours').value = "";
+                    document.getElementById('ot-reason').value = "";
                 }
             });
         }
@@ -618,7 +613,6 @@
             
             let rowsHtml = "";
             filtered.forEach(item => {
-                // 🎨 視覺顏色：已打卡、核准皆為綠色 (status-approved)
                 let badgeClass = "status-pending"; 
                 if (item.status === "核准" || item.mainType === "打卡" || item.status === "已打卡" || item.status === "打卡") {
                     badgeClass = "status-approved"; 
@@ -633,16 +627,24 @@
 
                 let contentHtml = "";
                 if(item.mainType === "打卡") {
-                    contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>時間：${cleanDateTimeStr(item.time)}<br>${item.reason || ''}</div>`;
-                } else {
-                    let contentLabel = item.mainType === "請假" ? "請假事由" : "工作內容";
+                    contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>時間：${cleanDateTimeStr(item.time)}</div>`;
+                } else if(item.mainType === "加班") {
+                    // 加班單純欄位呈現
                     contentHtml = `
                         <div class="detail-block">
-                            <strong>[${item.mainType}]</strong> ${item.type}<br>
+                            <strong>[加班] 延長工時</strong><br>
+                            加班日期：${cleanDateTimeStr(item.date || item.startStr)}<br>
+                            核報時數：${item.hours}<br>
+                            內容概述：${item.reason || '無'}
+                        </div>
+                    `;
+                } else {
+                    contentHtml = `
+                        <div class="detail-block">
+                            <strong>[請假]</strong> ${item.type || '一般假別'}<br>
                             開始時間：${cleanDateTimeStr(item.startStr)}<br>
                             結束時間：${cleanDateTimeStr(item.endStr)}<br>
-                            共計：${item.hours}<br>
-                            ${contentLabel}：${item.reason || '無'}
+                            內容明細：${item.reason || '無'}
                         </div>
                     `;
                 }
