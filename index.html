@@ -41,9 +41,9 @@
         .data-table th { background-color: #f7fafc; color: #4a5568; font-weight: bold; }
         
         .status-badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; display: inline-block; }
-        .status-pending { background-color: #dd6b20; }
-        .status-approved { background-color: #38a169; }
-        .status-rejected { background-color: #e53e3e; }
+        .status-badge.status-pending { background-color: #dd6b20; }
+        .status-badge.status-approved { background-color: #38a169; }
+        .status-badge.status-rejected { background-color: #e53e3e; }
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .filter-box { background: #f7fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; }
@@ -113,7 +113,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>共計時數</label>
+                    <label>共計時數 (已自動扣除中午1小時休息)</label>
                     <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                 </div>
                 <div class="form-group">
@@ -142,7 +142,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>共計時數</label>
+                    <label>共計時數 (已自動扣除中午1小時休息)</label>
                     <input type="text" id="ot-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                 </div>
                 <div class="form-group">
@@ -220,7 +220,7 @@
         // ⚠️ 請在此處填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
-        let allFetchedRecords = []; // 儲存下載的快取，便於前端切換篩選
+        let allFetchedRecords = []; 
 
         document.addEventListener("DOMContentLoaded", function() {
             if (localStorage.getItem('clock_emp_id')) document.getElementById('emp-id').value = localStorage.getItem('clock_emp_id');
@@ -252,7 +252,6 @@
                 if (password === "administor") {
                     alert("🔓 密碼正確！已開啟最高權限審核後台。");
                     adminBtn.style.display = "flex";
-                    // 預設切換至管理員後台，篩選器自動設為「送審中」
                     document.getElementById('status-filter').value = "送審中";
                     switchPage('admin_panel');
                 } else {
@@ -284,13 +283,12 @@
                 const idx = pageId === 'clock' ? 0 : pageId === 'leave' ? 1 : pageId === 'overtime' ? 2 : 3;
                 document.querySelectorAll('.nav-bar .nav-item')[idx].classList.add('active');
                 if (pageId === 'history') {
-                    document.getElementById('status-filter').value = "all"; // 員工預設看全部
+                    document.getElementById('status-filter').value = "all"; 
                     fetchHistory('user');
                 }
             }
         }
 
-        // 🛠️ 徹底拿掉 000Z 與 T 的優化函數
         function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
             try {
@@ -298,11 +296,12 @@
                 s = s.replace('T', ' ');
                 s = s.replace('.000Z', '');
                 s = s.replace('Z', '');
-                if(s.length > 16) s = s.substring(0, 16); // 簡化到分鐘，拿掉秒數
+                if(s.length > 16) s = s.substring(0, 16); 
                 return s;
             } catch(e) { return dtStr; }
         }
 
+        // 🛠️ 核心微調：加入智慧扣除中午1小時 (12:00 ~ 13:00) 的勞基法邏輯
         function calculateHours(prefix) {
             const d1 = document.getElementById(prefix + '-start-date').value;
             const t1 = document.getElementById(prefix + '-start-time').value;
@@ -313,16 +312,57 @@
             
             const start = new Date(d1 + 'T' + t1);
             const end = new Date(d2 + 'T' + t2);
-            const diff = end - start;
+            let diffMs = end - start;
             
-            if (diff <= 0) {
+            if (diffMs <= 0) {
                 alert("❌ 結束時間必須大於開始時間！");
                 document.getElementById(prefix + '-end-date').value = "";
                 document.getElementById(prefix + '-end-time').value = "";
                 document.getElementById(prefix + '-hours').value = "";
                 return;
             }
-            document.getElementById(prefix + '-hours').value = (diff / (1000 * 60 * 60)).toFixed(1);
+
+            // 先算出初步總小時
+            let totalHours = diffMs / (1000 * 60 * 60);
+
+            // 智慧精算是否跨越中午休息區間 (12:00 ~ 13:00)
+            // 將起訖時間轉換成當天的「分鐘數」來做比對
+            let startMin = start.getHours() * 60 + start.getMinutes();
+            let endMin = end.getHours() * 60 + end.getMinutes();
+            
+            // 如果是在同一天內
+            if (d1 === d2) {
+                // 情境 A：完整跨越中午 (例如 08:00 到 17:00)
+                if (startMin <= 12 * 60 && endMin >= 13 * 60) {
+                    totalHours -= 1;
+                }
+                // 情境 B：切在中午前半段 (例如 08:00 到 12:30)
+                else if (startMin <= 12 * 60 && endMin > 12 * 60 && endMin < 13 * 60) {
+                    let overlapMin = endMin - (12 * 60);
+                    totalHours -= (overlapMin / 60);
+                }
+                // 情境 C：切在中午後半段 (例如 12:30 到 17:00)
+                else if (startMin > 12 * 60 && startMin < 13 * 60 && endMin >= 13 * 60) {
+                    let overlapMin = (13 * 60) - startMin;
+                    totalHours -= (overlapMin / 60);
+                }
+                // 情境 D：起訖都在中午一小時內 (例如 12:15 到 12:45)
+                else if (startMin >= 12 * 60 && endMin <= 13 * 60) {
+                    totalHours = 0;
+                }
+            } else {
+                // 如果是跨天（例如跨了多天，通常會每天自動扣除，此處以單日精準常規為主）
+                // 若未來有長期請假需求，可在這邊擴充，目前維持按基準跨天扣除
+                let daysDiff = Math.floor((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24));
+                totalHours -= (daysDiff * 1); // 每天扣一小時午休
+                if (startMin <= 12 * 60) totalHours -= 1;
+                if (endMin >= 13 * 60) totalHours -= 1;
+            }
+
+            // 確保最低不為負數
+            if(totalHours < 0) totalHours = 0;
+
+            document.getElementById(prefix + '-hours').value = totalHours.toFixed(1) + " 小時";
         }
 
         function clearFormFields(prefix) {
@@ -367,7 +407,7 @@
                 type: document.getElementById('leave-type').value, 
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
-                hours: hours + " 小時",
+                hours: hours,
                 reason: reason, 
                 empId: identity.empId, 
                 empName: identity.empName 
@@ -375,7 +415,7 @@
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 if(res.status==='success'){ 
                     alert("🎉 請假單已成功送出！"); 
-                    clearFormFields('leave'); // 清空欄位
+                    clearFormFields('leave'); 
                     switchPage('history'); 
                 }
             });
@@ -396,7 +436,7 @@
                 action: "overtime", 
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
-                hours: hours + " 小時",
+                hours: hours,
                 reason: reason, 
                 empId: identity.empId, 
                 empName: identity.empName 
@@ -404,7 +444,7 @@
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 if(res.status==='success'){ 
                     alert("🎉 加班申報單已成功送出！"); 
-                    clearFormFields('ot'); // 清空欄位
+                    clearFormFields('ot'); 
                     switchPage('history'); 
                 }
             });
@@ -422,7 +462,7 @@
             .then(res => res.json())
             .then(data => {
                 loading.style.display = "none";
-                allFetchedRecords = data; // 寫入全局暫存
+                allFetchedRecords = data; 
                 renderFilteredData(currentMode);
             }).catch(err => { loading.style.display = "none"; });
         }
@@ -438,7 +478,6 @@
             
             const filterValue = document.getElementById('status-filter').value;
             
-            // 過濾邏輯
             let filtered = allFetchedRecords.filter(item => {
                 if (filterValue === "all") return true;
                 if (filterValue === "已打卡") return item.mainType === "打卡";
@@ -478,7 +517,6 @@
                     `;
                 }
 
-                // 備註不為空則顯示
                 let commentHtml = (item.comment && item.comment.trim() !== "") ? `<br><span style="font-size:11px;color:#e53e3e;display:block;margin-top:2px;">意見: ${item.comment}</span>` : "";
 
                 const row = `<tr>
