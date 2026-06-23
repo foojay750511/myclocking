@@ -14,7 +14,6 @@
         .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #eef2f5; }
         .card h3 { margin-bottom: 15px; font-size: 16px; color: #1e3c72; border-left: 4px solid #2a5298; padding-left: 8px; }
         
-        /* 勞基法與內部請假規則宣導專區 */
         .law-box { background-color: #fffaf0; border: 1px solid #feebc8; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
         .law-title { font-size: 14px; font-weight: bold; color: #dd6b20; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
         .law-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; color: #4a5568; }
@@ -50,11 +49,10 @@
         .data-table th, .data-table td { border: 1px solid #e2e8f0; padding: 10px; vertical-align: middle; }
         .data-table th { background-color: #f7fafc; color: #4a5568; font-weight: bold; }
         
-        /* 🎨 依需求優化簽核狀態標籤顏色 */
         .status-badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; display: inline-block; }
-        .status-badge.status-approved { background-color: #38a169; } /* 核准、打卡 綠色 */
-        .status-badge.status-rejected { background-color: #e53e3e; } /* 退回 紅色 */
-        .status-badge.status-pending { background-color: #dd6b20; }  /* 送審中 橘色 */
+        .status-badge.status-approved { background-color: #38a169; } /* 核准、已打卡：綠色 */
+        .status-badge.status-rejected { background-color: #e53e3e; } /* 退回：紅色 */
+        .status-badge.status-pending { background-color: #dd6b20; }  /* 送審中：橘色 */
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .filter-box { background: #f7fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; }
@@ -66,7 +64,7 @@
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>2026 勞基法整合 & 安全密碼登入版</p>
+        <p>2026 勞基法整合 & 速度優化版</p>
     </div>
 
     <div class="container">
@@ -83,7 +81,7 @@
         </div>
 
         <div class="card" style="border: 2px solid #2a5298;" id="identity-card">
-            <h3 id="login-title">🔒 員工系統登入驗證</h3>
+            <h3>🔒 員工系統登入驗證</h3>
             
             <div id="login-form-block">
                 <div class="form-group">
@@ -124,7 +122,7 @@
         <div id="login-gate-shield" class="card locked-notice">
             <span class="lock-icon">🔒</span>
             <p><strong>本系統目前處於鎖定狀態</strong></p>
-            <p style="margin-top: 5px; font-size: 13px;">請先在上方「員工系統登入驗證」卡片中選擇姓名並輸入密碼登入，方可解鎖打卡、請假、特休、加班等差勤功能。</p>
+            <p style="margin-top: 5px; font-size: 13px;">請先在上方「員工系統登入驗證」卡片中選擇姓名並輸入密碼登入，方可解鎖功能。</p>
         </div>
 
         <div id="unlocked-features-zone" style="display: none;">
@@ -168,7 +166,7 @@
                         <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                     </div>
                     <div class="form-group">
-                        <label>請假事由 / 備註內容</label>
+                        <label>請假事由 / 備註內容 (選填)</label>
                         <input type="text" id="leave-reason" class="form-control" placeholder="請輸入事由">
                     </div>
                     <button class="btn btn-primary" onclick="submitLeave()">送出請假申請</button>
@@ -197,7 +195,7 @@
                         <input type="text" id="ot-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                     </div>
                     <div class="form-group">
-                        <label>工作內容概述</label>
+                        <label>工作內容概述 (選填)</label>
                         <input type="text" id="ot-reason" class="form-control" placeholder="請填寫加班處理的工作內容">
                     </div>
                     <button class="btn btn-primary" onclick="submitOvertime()">送出加班申報</button>
@@ -273,7 +271,6 @@
         // ⚠️ 請填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
-        // 👥 員工資料名冊庫
         const EMPLOYEE_DATABASE = [
             { id: "A001", name: "賴柏全", password: "0726" },
             { id: "A002", name: "廖彥珵", password: "0911" },
@@ -294,7 +291,29 @@
         let loggedInUser = null; 
         let allFetchedRecords = []; 
 
+        // ⚡ 全域速度優化快取元件
+        const DOM = {};
+
         document.addEventListener("DOMContentLoaded", function() {
+            // 初始化快取
+            DOM.loginForm = document.getElementById('login-form-block');
+            DOM.loginSuccess = document.getElementById('login-success-block');
+            DOM.userName = document.getElementById('user-display-name');
+            DOM.userId = document.getElementById('user-display-id');
+            DOM.gateShield = document.getElementById('login-gate-shield');
+            DOM.featuresZone = document.getElementById('unlocked-features-zone');
+            DOM.adminBtn = document.getElementById('nav-admin-btn');
+            DOM.statusFilter = document.getElementById('status-filter');
+            DOM.historyTitle = document.getElementById('history-title');
+            DOM.loading = document.getElementById('loading');
+            DOM.historyData = document.getElementById('history-data');
+            DOM.batchPanel = document.getElementById('batch-panel');
+            DOM.thSelect = document.getElementById('th-select');
+            DOM.userRole = document.getElementById('user-role');
+            DOM.empSelect = document.getElementById('emp-select');
+            DOM.empIdInput = document.getElementById('emp-id');
+            DOM.empPassword = document.getElementById('emp-password');
+
             initEmployeeSelectJson();
             
             const cachedId = localStorage.getItem('login_session_id');
@@ -308,24 +327,21 @@
         });
 
         function initEmployeeSelectJson() {
-            const selectEl = document.getElementById('emp-select');
+            let optionsHtml = '<option value="">-- 請選擇您的姓名 --</option>';
             EMPLOYEE_DATABASE.forEach(emp => {
-                const opt = document.createElement('option');
-                opt.value = emp.id;
-                opt.textContent = emp.name;
-                selectEl.appendChild(opt);
+                optionsHtml += `<option value="${emp.id}">${emp.name}</option>`;
             });
+            DOM.empSelect.innerHTML = optionsHtml;
         }
 
         function handleEmpSelectChange() {
-            const selectedId = document.getElementById('emp-select').value;
-            document.getElementById('emp-id').value = selectedId;
-            document.getElementById('emp-password').value = ""; 
+            DOM.empIdInput.value = DOM.empSelect.value;
+            DOM.empPassword.value = ""; 
         }
 
         function executeEmployeeLogin() {
-            const selectedId = document.getElementById('emp-select').value;
-            const inputPwd = document.getElementById('emp-password').value.trim();
+            const selectedId = DOM.empSelect.value;
+            const inputPwd = DOM.empPassword.value.trim();
             
             if(!selectedId) { alert("❌ 請先選擇您的姓名！"); return; }
             if(!inputPwd) { alert("❌ 請輸入驗證密碼！"); return; }
@@ -339,19 +355,17 @@
                 applyLoginSuccessState();
             } else {
                 alert("❌ 密碼錯誤！請重新輸入。");
-                document.getElementById('emp-password').value = "";
+                DOM.empPassword.value = "";
             }
         }
 
         function applyLoginSuccessState() {
-            document.getElementById('login-form-block').style.display = "none";
-            document.getElementById('login-success-block').style.display = "block";
-            document.getElementById('user-display-name').innerText = loggedInUser.name;
-            document.getElementById('user-display-id').innerText = loggedInUser.id;
-            
-            document.getElementById('login-gate-shield').style.display = "none";
-            document.getElementById('unlocked-features-zone').style.display = "block";
-            
+            DOM.loginForm.style.display = "none";
+            DOM.loginSuccess.style.display = "block";
+            DOM.userName.innerText = loggedInUser.name;
+            DOM.userId.innerText = loggedInUser.id;
+            DOM.gateShield.style.display = "none";
+            DOM.featuresZone.style.display = "block";
             switchPage('clock');
         }
 
@@ -360,39 +374,35 @@
             localStorage.removeItem('login_session_id');
             loggedInUser = null;
             
-            document.getElementById('login-form-block').style.display = "block";
-            document.getElementById('login-success-block').style.display = "none";
-            document.getElementById('emp-select').value = "";
-            document.getElementById('emp-id').value = "";
-            document.getElementById('emp-password').value = "";
-            document.getElementById('user-role').value = "user";
-            
-            document.getElementById('login-gate-shield').style.display = "block";
-            document.getElementById('unlocked-features-zone').style.display = "none";
-            document.getElementById('nav-admin-btn').style.display = "none";
-            
+            DOM.loginForm.style.display = "block";
+            DOM.loginSuccess.style.display = "none";
+            DOM.empSelect.value = "";
+            DOM.empIdInput.value = "";
+            DOM.empPassword.value = "";
+            DOM.userRole.value = "user";
+            DOM.gateShield.style.display = "block";
+            DOM.featuresZone.style.display = "none";
+            DOM.adminBtn.style.display = "none";
             switchPage('clock');
         }
 
         function verifyAdminRole() {
-            const role = document.getElementById('user-role').value;
-            const adminBtn = document.getElementById('nav-admin-btn');
-            
+            const role = DOM.userRole.value;
             if (role === 'admin') {
                 const password = prompt("🔐 請輸入最高權限管理員密碼：");
                 if (password === "administor") {
                     alert("🔓 密碼正確！已開啟最高權限審核後台。");
-                    adminBtn.style.display = "flex";
-                    document.getElementById('status-filter').value = "送審中";
+                    DOM.adminBtn.style.display = "flex";
+                    DOM.statusFilter.value = "送審中";
                     switchPage('admin_panel');
                 } else {
                     alert("❌ 密碼錯誤！恢復為一般員工模式。");
-                    document.getElementById('user-role').value = 'user';
-                    adminBtn.style.display = "none";
+                    DOM.userRole.value = 'user';
+                    DOM.adminBtn.style.display = "none";
                     switchPage('clock');
                 }
             } else {
-                adminBtn.style.display = "none";
+                DOM.adminBtn.style.display = "none";
                 switchPage('clock');
             }
         }
@@ -408,35 +418,33 @@
             
             if (pageId === 'admin_panel') {
                 document.getElementById('page-history').classList.add('active');
-                document.getElementById('nav-admin-btn').classList.add('active');
-                document.getElementById('batch-panel').style.display = "block";
-                document.getElementById('th-select').style.display = "table-cell";
+                DOM.adminBtn.classList.add('active');
+                DOM.batchPanel.style.display = "block";
+                DOM.thSelect.style.display = "table-cell";
                 fetchHistory('admin');
             } else {
-                if(document.getElementById('page-' + pageId)) {
-                    document.getElementById('page-' + pageId).classList.add('active');
-                }
-                document.getElementById('batch-panel').style.display = "none";
-                document.getElementById('th-select').style.display = "none";
+                const targetPage = document.getElementById('page-' + pageId);
+                if(targetPage) targetPage.classList.add('active');
+                
+                DOM.batchPanel.style.display = "none";
+                DOM.thSelect.style.display = "none";
                 
                 const idx = pageId === 'clock' ? 0 : pageId === 'leave' ? 1 : pageId === 'overtime' ? 2 : 3;
-                if(document.querySelectorAll('.nav-bar .nav-item')[idx]){
-                    document.querySelectorAll('.nav-bar .nav-item')[idx].classList.add('active');
-                }
+                const targetNav = document.querySelectorAll('.nav-bar .nav-item')[idx];
+                if(targetNav) targetNav.classList.add('active');
+                
                 if (pageId === 'history') {
-                    document.getElementById('status-filter').value = "all"; 
+                    DOM.statusFilter.value = "all"; 
                     fetchHistory('user');
                 }
             }
         }
 
-        // 🔧 解決落差核心：直接乾淨輸出試算表原本傳過來的字串，不再進行本地時區二次格式化
         function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
             let s = dtStr.toString().trim();
             s = s.replace('T', ' ').replace('.000Z', '').replace('Z', '');
-            if(s.length > 16) s = s.substring(0, 16);
-            return s;
+            return s.length > 16 ? s.substring(0, 16) : s;
         }
 
         function calculateHours(prefix) {
@@ -459,39 +467,33 @@
                 return;
             }
 
-            let rawHours = diffMs / (1000 * 60 * 60);
+            let rawHours = diffMs / 3600000;
             let startMin = start.getHours() * 60 + start.getMinutes();
             let endMin = end.getHours() * 60 + end.getMinutes();
             
             if (d1 === d2) {
-                if (startMin <= 12 * 60 && endMin >= 13 * 60) {
+                if (startMin <= 720 && endMin >= 780) {
                     rawHours -= 1;
-                } else if (startMin <= 12 * 60 && endMin > 12 * 60 && endMin < 13 * 60) {
-                    rawHours -= ((endMin - 12 * 60) / 60);
-                } else if (startMin > 12 * 60 && startMin < 13 * 60 && endMin >= 13 * 60) {
-                    rawHours -= ((13 * 60 - startMin) / 60);
-                } else if (startMin >= 12 * 60 && endMin <= 13 * 60) {
+                } else if (startMin <= 720 && endMin > 720 && endMin < 780) {
+                    rawHours -= ((endMin - 720) / 60);
+                } else if (startMin > 720 && startMin < 780 && endMin >= 780) {
+                    rawHours -= ((780 - startMin) / 60);
+                } else if (startMin >= 720 && endMin <= 780) {
                     rawHours = 0;
                 }
             } else {
-                let daysDiff = Math.floor((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24));
-                rawHours -= (daysDiff * 1); 
-                if (startMin <= 12 * 60) rawHours -= 1;
-                if (endMin >= 13 * 60) rawHours -= 1;
+                let daysDiff = Math.floor((new Date(d2) - new Date(d1)) / 86400000);
+                rawHours -= daysDiff; 
+                if (startMin <= 720) rawHours -= 1;
+                if (endMin >= 780) rawHours -= 1;
             }
             if(rawHours < 0) rawHours = 0;
 
             let finalHours = rawHours;
             if (prefix === 'leave') {
-                // 💡 應需求：已拔除 Math.ceil 的 0.5 與 1 小時硬性限制，直接呈現精準時數
-                let dayCount = 1;
-                if (d1 !== d2) {
-                    dayCount = Math.floor((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24)) + 1;
-                }
+                let dayCount = (d1 === d2) ? 1 : Math.floor((new Date(d2) - new Date(d1)) / 86400000) + 1;
                 let maxAllowedHours = dayCount * 8;
-                if (finalHours > maxAllowedHours) {
-                    finalHours = maxAllowedHours;
-                }
+                if (finalHours > maxAllowedHours) finalHours = maxAllowedHours;
             }
 
             document.getElementById(prefix + '-hours').value = finalHours.toFixed(1) + " 小時";
@@ -530,9 +532,9 @@
             const d2 = document.getElementById('leave-end-date').value;
             const t2 = document.getElementById('leave-end-time').value;
             const hours = document.getElementById('leave-hours').value;
-            const reason = document.getElementById('leave-reason').value;
+            const reason = document.getElementById('leave-reason').value; // 可空白
             
-            if(!d1 || !t1 || !d2 || !t2 || !reason) { alert("請填寫完整請假起訖時間與內容！"); return; }
+            if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整請假起訖時間！"); return; }
             
             const payload = { 
                 action: "leave", 
@@ -540,7 +542,7 @@
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
                 hours: hours,
-                reason: reason, 
+                reason: reason || "", 
                 empId: loggedInUser.id, 
                 empName: loggedInUser.name 
             };
@@ -548,7 +550,7 @@
                 if(res.status==='success'){ 
                     alert("🎉 差勤申請單已成功送出！"); 
                     clearFormFields('leave'); 
-                    switchPage('history'); 
+                    // 💡 應需求：移除自動切換頁面邏輯，停留在原本分頁
                 }
             });
         }
@@ -560,16 +562,16 @@
             const d2 = document.getElementById('ot-end-date').value;
             const t2 = document.getElementById('ot-end-time').value;
             const hours = document.getElementById('ot-hours').value;
-            const reason = document.getElementById('ot-reason').value;
+            const reason = document.getElementById('ot-reason').value; // 可空白
             
-            if(!d1 || !t1 || !d2 || !t2 || !reason) { alert("請填寫完整加班起訖時間與內容！"); return; }
+            if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整加班起訖時間！"); return; }
             
             const payload = { 
                 action: "overtime", 
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
                 hours: hours,
-                reason: reason, 
+                reason: reason || "", 
                 empId: loggedInUser.id, 
                 empName: loggedInUser.name 
             };
@@ -577,39 +579,32 @@
                 if(res.status==='success'){ 
                     alert("🎉 加班申報單已成功送出！"); 
                     clearFormFields('ot'); 
-                    switchPage('history'); 
+                    // 💡 應需求：移除自動切換頁面邏輯，停留在原本分頁
                 }
             });
         }
 
         function fetchHistory(currentMode) {
             if(!loggedInUser) return;
-            const loading = document.getElementById('loading');
-            
-            document.getElementById('history-title').innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人出勤進度查詢";
-            loading.style.display = "block";
+            DOM.historyTitle.innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人出勤進度查詢";
+            DOM.loading.style.display = "block";
             document.getElementById('select-all').checked = false;
 
             fetch(`${GAS_URL}?mode=${currentMode}&empId=${loggedInUser.id}`)
             .then(res => res.json())
             .then(data => {
-                loading.style.display = "none";
+                DOM.loading.style.display = "none";
                 allFetchedRecords = data; 
                 renderFilteredData(currentMode);
-            }).catch(err => { loading.style.display = "none"; });
+            }).catch(err => { DOM.loading.style.display = "none"; });
         }
 
         function filterRecords() {
-            const role = document.getElementById('user-role').value;
-            renderFilteredData(role === 'admin' ? 'admin' : 'user');
+            renderFilteredData(DOM.userRole.value === 'admin' ? 'admin' : 'user');
         }
 
         function renderFilteredData(currentMode) {
-            const tbody = document.getElementById('history-data');
-            tbody.innerHTML = "";
-            
-            const filterValue = document.getElementById('status-filter').value;
-            
+            const filterValue = DOM.statusFilter.value;
             let filtered = allFetchedRecords.filter(item => {
                 if (filterValue === "all") return true;
                 if (filterValue === "已打卡") return item.mainType === "打卡";
@@ -617,31 +612,28 @@
             });
 
             if(filtered.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">無符合篩選條件的差勤紀錄</td></tr>`; 
+                DOM.historyData.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">無符合篩選條件的差勤紀錄</td></tr>`; 
                 return; 
             }
             
+            let rowsHtml = "";
             filtered.forEach(item => {
-                // 🎨 依需求重新對應顏色標籤邏輯
-                let badgeClass = "status-pending"; // 預設送審中 = 橘色
-                if (item.status === "核准" || item.mainType === "打卡" || item.status === "已打卡") {
-                    badgeClass = "status-approved"; // 核准 & 打卡 = 綠色
+                // 🎨 視覺顏色：已打卡、核准皆為綠色 (status-approved)
+                let badgeClass = "status-pending"; 
+                if (item.status === "核准" || item.mainType === "打卡" || item.status === "已打卡" || item.status === "打卡") {
+                    badgeClass = "status-approved"; 
                 } else if (item.status === "退回") {
-                    badgeClass = "status-rejected"; // 退回 = 紅色
+                    badgeClass = "status-rejected"; 
                 }
                 
-                let checkboxHtml = "";
-                if (currentMode === 'admin') {
-                    if (item.mainType !== '打卡' && item.status === '送審中') {
-                        checkboxHtml = `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>`;
-                    } else {
-                        checkboxHtml = `<td></td>`;
-                    }
+                let checkboxHtml = "<td></td>";
+                if (currentMode === 'admin' && item.mainType !== '打卡' && item.status === '送審中') {
+                    checkboxHtml = `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>`;
                 }
 
                 let contentHtml = "";
                 if(item.mainType === "打卡") {
-                    contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>時間：${cleanDateTimeStr(item.time)}<br>${item.reason}</div>`;
+                    contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>時間：${cleanDateTimeStr(item.time)}<br>${item.reason || ''}</div>`;
                 } else {
                     let contentLabel = item.mainType === "請假" ? "請假事由" : "工作內容";
                     contentHtml = `
@@ -650,14 +642,14 @@
                             開始時間：${cleanDateTimeStr(item.startStr)}<br>
                             結束時間：${cleanDateTimeStr(item.endStr)}<br>
                             共計：${item.hours}<br>
-                            ${contentLabel}：${item.reason}
+                            ${contentLabel}：${item.reason || '無'}
                         </div>
                     `;
                 }
 
                 let commentHtml = (item.comment && item.comment.trim() !== "") ? `<br><span style="font-size:11px;color:#e53e3e;display:block;margin-top:2px;">意見: ${item.comment}</span>` : "";
 
-                const row = `<tr>
+                rowsHtml += `<tr>
                     ${checkboxHtml}
                     <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:11px;">工號: ${item.empId}</span></td>
                     <td>${contentHtml}</td>
@@ -666,8 +658,8 @@
                         ${commentHtml}
                     </td>
                 </tr>`;
-                tbody.innerHTML += row;
             });
+            DOM.historyData.innerHTML = rowsHtml;
         }
 
         function toggleSelectAll(master) {
