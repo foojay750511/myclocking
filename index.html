@@ -15,7 +15,7 @@
         .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #eef2f5; }
         .card h3 { margin-bottom: 15px; font-size: 16px; color: #1e3c72; border-left: 4px solid #2a5298; padding-left: 8px; }
         
-        /* 1. 勞基法請假資訊規範區 */
+        /* 1. 勞基法請假資訊區規範區 */
         .law-box { background-color: #fffaf0; border: 1px solid #feebc8; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
         .law-title { font-size: 14px; font-weight: bold; color: #dd6b20; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
         .law-grid { display: grid; grid-template-columns: repeat(1, 1fr); gap: 6px; font-size: 12px; color: #4a5568; }
@@ -52,13 +52,10 @@
         .data-table th, .data-table td { border: 1px solid #e2e8f0; padding: 10px; vertical-align: middle; }
         .data-table th { background-color: #f7fafc; color: #4a5568; font-weight: bold; }
         
-        /* 4、5、6. 精準狀態標籤顏色管理 */
+        /* 精準狀態標籤顏色管理 */
         .status-badge { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; display: inline-block; text-align: center; }
-        /* 4. 已核准 / 已打卡 (綠色) */
         .status-approved, .status-clocked { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
-        /* 5. 退回 (紅色) */
         .status-rejected { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
-        /* 6. 送審中 (橘色) */
         .status-pending { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
@@ -78,7 +75,7 @@
             <div class="law-title">⚖️ 勞基法法定假別與內部規範</div>
             <div class="law-grid">
                 <div class="law-item"><strong>🌴 特別休假：</strong>依年資給假（半年3天、1年7天等），工資照給。</div>
-                <div class="law-item"><strong>🤒 普通傷病假：</strong>未住院者1年內內上限 30 天，薪資折半發給。</div>
+                <div class="law-item"><strong>🤒 普通傷病假：</strong>未住院者1年內上限 30 天，薪資折半發給。</div>
                 <div class="law-item"><strong>🏠 事假：</strong>1 年內合計不得超過 14 天，期間不給工資。</div>
                 <div class="law-item"><strong>⏰ 午休扣除機制：</strong>請假跨越 <strong>12:00 ~ 13:00</strong> 將自動扣除 1 小時。</div>
             </div>
@@ -152,20 +149,20 @@
                     <div class="form-group">
                         <label>開始時間</label>
                         <div class="datetime-group">
-                            <input type="date" id="leave-start-date" class="form-control" onchange="calculateLeaveHours()">
-                            <input type="time" id="leave-start-time" class="form-control" onchange="calculateLeaveHours()">
+                            <input type="date" id="leave-start-date" class="form-control">
+                            <input type="time" id="leave-start-time" class="form-control">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>結束時間</label>
                         <div class="datetime-group">
-                            <input type="date" id="leave-end-date" class="form-control" onchange="calculateLeaveHours()">
-                            <input type="time" id="leave-end-time" class="form-control" onchange="calculateLeaveHours()">
+                            <input type="date" id="leave-end-date" class="form-control">
+                            <input type="time" id="leave-end-time" class="form-control">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>共計時數 (已扣除中午 12 點午休)</label>
-                        <input type="text" id="leave-hours" class="form-control" style="background-color: #edf2f7; font-weight: bold; color: #2b6cb0;" readonly placeholder="自動計算">
+                        <label>共計時數 (已自動扣除中午 12~13 點午休)</label>
+                        <input type="text" id="leave-hours" class="form-control" style="background-color: #edf2f7; font-weight: bold; color: #2b6cb0;" readonly placeholder="自動計算中...">
                     </div>
                     <div class="form-group">
                         <label>請假事由 (選填)</label>
@@ -298,6 +295,7 @@
             DOM.empPassword = document.getElementById('emp-password');
 
             initEmployeeSelectJson();
+            setupLeaveInputListeners();
             
             const cachedId = localStorage.getItem('login_session_id');
             if (cachedId) {
@@ -411,22 +409,57 @@
             return s.length > 16 ? s.substring(0, 16) : s;
         }
 
-        // 2. 中午12點休息部分自動扣除計算邏輯
+        // 為請假的所有時間輸入框建立即時變更監聽機制
+        function setupLeaveInputListeners() {
+            ['leave-start-date', 'leave-start-time', 'leave-end-date', 'leave-end-time'].forEach(id => {
+                document.getElementById(id).addEventListener('input', calculateLeaveHours);
+                document.getElementById(id).addEventListener('change', calculateLeaveHours);
+            });
+        }
+
+        // 2. 徹底翻新：中午 12 點休息精準全方位扣除邏輯 (支援各種時間輸入格式)
         function calculateLeaveHours() {
             const d1 = document.getElementById('leave-start-date').value;
-            const t1 = document.getElementById('leave-start-time').value;
+            let t1 = document.getElementById('leave-start-time').value;
             const d2 = document.getElementById('leave-end-date').value;
-            const t2 = document.getElementById('leave-end-time').value;
-            if (!d1 || !t1 || !d2 || !t2) return;
-
-            const start = new Date(d1 + 'T' + t1);
-            const end = new Date(d2 + 'T' + t2);
-            let diffMs = end - start;
-            if (diffMs <= 0) { alert("❌ 結束時間必須大於開始時間！"); return; }
+            let t2 = document.getElementById('leave-end-time').value;
             
+            if (!d1 || !t1 || !d2 || !t2) {
+                document.getElementById('leave-hours').value = "自動計算中...";
+                return;
+            }
+
+            // 格式安全過濾：將可能包含「上午/下午」的格式轉為標準 24 小時制 hh:mm
+            const convertTo24h = (timeStr) => {
+                let s = timeStr.trim();
+                let isPm = s.includes('下午') || s.includes('PM') || s.includes('pm');
+                let isAm = s.includes('上午') || s.includes('AM') || s.includes('am');
+                // 移除非數字與冒號的雜質
+                s = s.replace(/[^\d:]/g, '');
+                let parts = s.split(':');
+                if(parts.length < 2) return "00:00";
+                let h = parseInt(parts[0], 10);
+                let m = parseInt(parts[1], 10);
+                if (isPm && h < 12) h += 12;
+                if (isAm && h === 12) h = 0;
+                return String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0');
+            };
+
+            t1 = convertTo24h(t1);
+            t2 = convertTo24h(t2);
+
+            const start = new Date(d1 + 'T' + t1 + ':00');
+            const end = new Date(d2 + 'T' + t2 + ':00');
+            
+            if (isNaN(start.getTime()) || !isNaN(end.getTime()) && end <= start) {
+                document.getElementById('leave-hours').value = "0.0 小時";
+                return;
+            }
+            
+            let diffMs = end - start;
             let totalHours = diffMs / 3600000;
 
-            // 跨午休扣除精準判斷：只要請假範圍涵蓋了 12:00 ~ 13:00 區間，自動扣除1小時休息
+            // 跨午休 12:00 ~ 13:00 判定機制：只要開始在 12點前，且結束在 13點後，強制自動扣除 1 小時
             const noonStart = new Date(d1 + 'T12:00:00');
             const noonEnd = new Date(d1 + 'T13:00:00');
             if (start <= noonStart && end >= noonEnd) {
@@ -444,7 +477,6 @@
                 .then(res => res.json()).then(res => {
                     document.getElementById('clock-loading').style.display = "none";
                     alert("🎉 " + res.message);
-                    // 3. 需求修正：不自動跳轉到歷史查詢畫面，保留在原打卡頁面
                 }).catch(err => {
                     document.getElementById('clock-loading').style.display = "none";
                     alert("❌ 連線失敗，請確認網路或 GAS 佈署網址。");
@@ -484,12 +516,12 @@
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 alert("🎉 " + res.message);
-                // 3. 需求修正：送出資訊時不用跳到查詢畫面，清空輸入框即可
+                // 3. 修正：保留在原畫面，清空資料
                 document.getElementById('leave-start-date').value = "";
                 document.getElementById('leave-start-time').value = "";
                 document.getElementById('leave-end-date').value = "";
                 document.getElementById('leave-end-time').value = "";
-                document.getElementById('leave-hours').value = "";
+                document.getElementById('leave-hours').value = "自動計算中...";
                 document.getElementById('leave-reason').value = "";
             });
         }
@@ -510,7 +542,6 @@
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 alert("🎉 " + res.message);
-                // 3. 需求修正：送出資訊時不用跳到查詢畫面
                 document.getElementById('ot-date').value = "";
                 document.getElementById('ot-hours').value = "";
                 document.getElementById('ot-reason').value = "";
@@ -539,12 +570,12 @@
             
             let rowsHtml = "";
             filtered.forEach(item => {
-                // 4、5、6. 精準狀態標籤樣式分配
-                let badgeClass = "status-pending"; // 6. 預設橘色審核中
+                // 精準狀態標籤樣式分配
+                let badgeClass = "status-pending"; 
                 if (item.status === "核准" || item.status === "已打卡") {
-                    badgeClass = "status-approved"; // 4. 綠色已核准/已打卡
+                    badgeClass = "status-approved"; 
                 } else if (item.status === "退回") {
-                    badgeClass = "status-rejected"; // 5. 紅色退回
+                    badgeClass = "status-rejected"; 
                 }
 
                 let checkboxHtml = (currentMode === 'admin' && item.status === '送審中') ? `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>` : "<td></td>";
