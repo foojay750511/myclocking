@@ -46,6 +46,7 @@
         .status-rejected { background-color: #e53e3e; }
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .filter-box { background: #f7fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; }
         .detail-block { line-height: 1.6; font-size: 13px; color: #2d3748; }
     </style>
 </head>
@@ -53,7 +54,7 @@
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>簡化顯示格式 & 隱私數據隔離版</p>
+        <p>簡化顯示格式 & 快速簽核篩選版</p>
     </div>
 
     <div class="container">
@@ -162,7 +163,6 @@
                             <option value="老闆">老闆</option>
                             <option value="管理者(虎尾)">管理者(虎尾)</option>
                             <option value="管理者(麥寮)">管理者(麥寮)</option>
-                            <option value="管理者(員林)">管理者(員林)</option>
                         </select>
                     </div>
                     <div style="flex: 1; min-width: 150px;">
@@ -173,6 +173,17 @@
                         <button onclick="executeBatchReview('退回')" class="btn btn-danger btn-inline">批次退回</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="filter-box">
+                <label style="font-size: 13px; font-weight: bold; color: #4a5568;">📌 狀態篩選：</label>
+                <select id="status-filter" class="form-control" style="width: auto; padding: 4px 10px; font-size: 13px;" onchange="filterRecords()">
+                    <option value="送審中">⏳ 送審中 (優先簽核)</option>
+                    <option value="all">🌐 顯示全部紀錄</option>
+                    <option value="核准">✅ 已核准</option>
+                    <option value="退回">❌ 已退回</option>
+                    <option value="已打卡">📍 僅看打卡</option>
+                </select>
             </div>
 
             <div class="card">
@@ -209,6 +220,8 @@
         // ⚠️ 請在此處填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
+        let allFetchedRecords = []; // 儲存下載的快取，便於前端切換篩選
+
         document.addEventListener("DOMContentLoaded", function() {
             if (localStorage.getItem('clock_emp_id')) document.getElementById('emp-id').value = localStorage.getItem('clock_emp_id');
             if (localStorage.getItem('clock_emp_name')) document.getElementById('emp-name').value = localStorage.getItem('clock_emp_name');
@@ -217,7 +230,6 @@
         function saveEmpInfo() {
             localStorage.setItem('clock_emp_id', document.getElementById('emp-id').value.trim());
             localStorage.setItem('clock_emp_name', document.getElementById('emp-name').value.trim());
-            // 如果切換了工號，且目前在進度頁面，就自動重刷
             if(document.getElementById('page-history').classList.contains('active')) {
                 const role = document.getElementById('user-role').value;
                 fetchHistory(role === 'admin' ? 'admin' : 'user');
@@ -240,6 +252,8 @@
                 if (password === "administor") {
                     alert("🔓 密碼正確！已開啟最高權限審核後台。");
                     adminBtn.style.display = "flex";
+                    // 預設切換至管理員後台，篩選器自動設為「送審中」
+                    document.getElementById('status-filter').value = "送審中";
                     switchPage('admin_panel');
                 } else {
                     alert("❌ 密碼錯誤！恢復為一般員工模式。");
@@ -269,16 +283,23 @@
                 document.getElementById('th-select').style.display = "none";
                 const idx = pageId === 'clock' ? 0 : pageId === 'leave' ? 1 : pageId === 'overtime' ? 2 : 3;
                 document.querySelectorAll('.nav-bar .nav-item')[idx].classList.add('active');
-                if (pageId === 'history') fetchHistory('user');
+                if (pageId === 'history') {
+                    document.getElementById('status-filter').value = "all"; // 員工預設看全部
+                    fetchHistory('user');
+                }
             }
         }
 
-        function formatDateTimeStr(dtStr) {
+        // 🛠️ 徹底拿掉 000Z 與 T 的優化函數
+        function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
             try {
-                // 將 2026-06-23 15:00 格式化
-                let cleanStr = dtStr.replace('T', ' ');
-                return cleanStr;
+                let s = dtStr.toString().trim();
+                s = s.replace('T', ' ');
+                s = s.replace('.000Z', '');
+                s = s.replace('Z', '');
+                if(s.length > 16) s = s.substring(0, 16); // 簡化到分鐘，拿掉秒數
+                return s;
             } catch(e) { return dtStr; }
         }
 
@@ -302,6 +323,16 @@
                 return;
             }
             document.getElementById(prefix + '-hours').value = (diff / (1000 * 60 * 60)).toFixed(1);
+        }
+
+        function clearFormFields(prefix) {
+            document.getElementById(prefix + '-start-date').value = "";
+            document.getElementById(prefix + '-start-time').value = "";
+            document.getElementById(prefix + '-end-date').value = "";
+            document.getElementById(prefix + '-end-time').value = "";
+            document.getElementById(prefix + '-hours').value = "";
+            const reasonField = document.getElementById(prefix + '-reason');
+            if(reasonField) reasonField.value = "";
         }
 
         function submitClock(type) {
@@ -342,7 +373,11 @@
                 empName: identity.empName 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
-                if(res.status==='success'){ alert("請假單已送出！"); switchPage('history'); }
+                if(res.status==='success'){ 
+                    alert("🎉 請假單已成功送出！"); 
+                    clearFormFields('leave'); // 清空欄位
+                    switchPage('history'); 
+                }
             });
         }
 
@@ -367,66 +402,96 @@
                 empName: identity.empName 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
-                if(res.status==='success'){ alert("加班單已送出！"); switchPage('history'); }
+                if(res.status==='success'){ 
+                    alert("🎉 加班申報單已成功送出！"); 
+                    clearFormFields('ot'); // 清空欄位
+                    switchPage('history'); 
+                }
             });
         }
 
         function fetchHistory(currentMode) {
             const identity = validateIdentity(); if(!identity) return;
             const loading = document.getElementById('loading');
-            const tbody = document.getElementById('history-data');
             
             document.getElementById('history-title').innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人出勤進度查詢";
-            loading.style.display = "block"; tbody.innerHTML = "";
+            loading.style.display = "block";
             document.getElementById('select-all').checked = false;
 
             fetch(`${GAS_URL}?mode=${currentMode}&empId=${identity.empId}`)
             .then(res => res.json())
             .then(data => {
                 loading.style.display = "none";
-                if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">暫無您工號屬性的出勤資料</td></tr>`; return; }
-                
-                data.forEach(item => {
-                    let badgeColor = item.status === "核准" ? "status-approved" : item.status === "退回" ? "status-rejected" : "status-pending";
-                    
-                    let checkboxHtml = "";
-                    if (currentMode === 'admin') {
-                        if (item.mainType !== '打卡' && item.status === '送審中') {
-                            checkboxHtml = `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>`;
-                        } else {
-                            checkboxHtml = `<td></td>`;
-                        }
-                    }
-
-                    // 🛠️ 核心微調：簡化成日期與清楚的行高排列
-                    let contentHtml = "";
-                    if(item.mainType === "打卡") {
-                        contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>${item.reason}</div>`;
-                    } else {
-                        // 請假或加班
-                        let contentLabel = item.mainType === "請假" ? "請假事由" : "工作內容";
-                        contentHtml = `
-                            <div class="detail-block">
-                                <strong>[${item.mainType}]</strong> ${item.type}<br>
-                                🪐 開始時間：${formatDateTimeStr(item.startStr)}<br>
-                                🪐 結束時間：${formatDateTimeStr(item.endStr)}<br>
-                                🪐 共計：${item.hours}<br>
-                                🪐 ${contentLabel}：${item.reason}
-                            </div>
-                        `;
-                    }
-
-                    const row = `<tr>
-                        ${checkboxHtml}
-                        <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:11px;">工號: ${item.empId}</span></td>
-                        <td>${contentHtml}</td>
-                        <td><span class="status-badge ${item.mainType=='打卡'?'status-approved':''} ${badgeColor}">${item.status}</span><br>
-                            <span style="font-size:11px;color:#718096;display:block;margin-top:4px;">簽: ${item.reviewer || '無'}</span>
-                        </td>
-                    </tr>`;
-                    tbody.innerHTML += row;
-                });
+                allFetchedRecords = data; // 寫入全局暫存
+                renderFilteredData(currentMode);
             }).catch(err => { loading.style.display = "none"; });
+        }
+
+        function filterRecords() {
+            const role = document.getElementById('user-role').value;
+            renderFilteredData(role === 'admin' ? 'admin' : 'user');
+        }
+
+        function renderFilteredData(currentMode) {
+            const tbody = document.getElementById('history-data');
+            tbody.innerHTML = "";
+            
+            const filterValue = document.getElementById('status-filter').value;
+            
+            // 過濾邏輯
+            let filtered = allFetchedRecords.filter(item => {
+                if (filterValue === "all") return true;
+                if (filterValue === "已打卡") return item.mainType === "打卡";
+                return item.status === filterValue;
+            });
+
+            if(filtered.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">無符合篩選條件的差勤紀錄</td></tr>`; 
+                return; 
+            }
+            
+            filtered.forEach(item => {
+                let badgeColor = item.status === "核准" ? "status-approved" : item.status === "退回" ? "status-rejected" : "status-pending";
+                
+                let checkboxHtml = "";
+                if (currentMode === 'admin') {
+                    if (item.mainType !== '打卡' && item.status === '送審中') {
+                        checkboxHtml = `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>`;
+                    } else {
+                        checkboxHtml = `<td></td>`;
+                    }
+                }
+
+                let contentHtml = "";
+                if(item.mainType === "打卡") {
+                    contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>時間：${cleanDateTimeStr(item.time)}<br>${item.reason}</div>`;
+                } else {
+                    let contentLabel = item.mainType === "請假" ? "請假事由" : "工作內容";
+                    contentHtml = `
+                        <div class="detail-block">
+                            <strong>[${item.mainType}]</strong> ${item.type}<br>
+                            開始時間：${cleanDateTimeStr(item.startStr)}<br>
+                            結束時間：${cleanDateTimeStr(item.endStr)}<br>
+                            共計：${item.hours}<br>
+                            ${contentLabel}：${item.reason}
+                        </div>
+                    `;
+                }
+
+                // 備註不為空則顯示
+                let commentHtml = (item.comment && item.comment.trim() !== "") ? `<br><span style="font-size:11px;color:#e53e3e;display:block;margin-top:2px;">意見: ${item.comment}</span>` : "";
+
+                const row = `<tr>
+                    ${checkboxHtml}
+                    <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:11px;">工號: ${item.empId}</span></td>
+                    <td>${contentHtml}</td>
+                    <td><span class="status-badge ${item.mainType=='打卡'?'status-approved':''} ${badgeColor}">${item.status}</span><br>
+                        <span style="font-size:11px;color:#718096;display:block;margin-top:4px;">簽: ${item.reviewer || '無'}</span>
+                        ${commentHtml}
+                    </td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
         }
 
         function toggleSelectAll(master) {
