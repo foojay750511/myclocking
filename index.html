@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行動差勤與簽核管理系統</title>
+    <title>行動差勤與權限管理系統</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f7fa; color: #333; padding-bottom: 70px; }
@@ -17,10 +17,9 @@
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #4a5568; }
         .form-control { width: 100%; padding: 11px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 14px; background-color: #fff; }
-        .form-control:focus { border-color: #2a5298; outline: none; box-shadow: 0 0 0 3px rgba(42,82,152,0.1); }
         
         .btn { display: block; width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 10px; font-size: 15px; font-weight: bold; border: none; border-radius: 8px; color: white; cursor: pointer; text-align: center; transition: all 0.2s; }
-        .btn:disabled { background-color: #a0aec0 !important; cursor: not-allowed; transform: none !important; }
+        .btn:disabled { background-color: #a0aec0 !important; cursor: not-allowed; }
         .btn-primary { background-color: #2a5298; }
         .btn-success { background-color: #38a169; }
         .btn-danger { background-color: #e53e3e; }
@@ -51,7 +50,7 @@
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>最終全面優化版</p>
+        <p>安全密碼與權限分流版</p>
     </div>
 
     <div class="container">
@@ -61,16 +60,16 @@
             <div style="display: flex; gap: 10px;">
                 <div class="form-group" style="flex: 1;">
                     <label>員工工號</label>
-                    <input type="text" id="emp-id" class="form-control" placeholder="例如: A001" onchange="saveEmpInfo()">
+                    <input type="text" id="emp-id" class="form-control" placeholder="A001" onchange="saveEmpInfo()">
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>員工姓名</label>
-                    <input type="text" id="emp-name" class="form-control" placeholder="例如: 張先生" onchange="saveEmpInfo()">
+                    <input type="text" id="emp-name" class="form-control" placeholder="張先生" onchange="saveEmpInfo()">
                 </div>
             </div>
             <div class="form-group">
                 <label>身份權限切換</label>
-                <select id="user-role" class="form-control" onchange="toggleAdminTab()">
+                <select id="user-role" class="form-control" onchange="verifyAdminRole()">
                     <option value="user">一般員工</option>
                     <option value="admin">最高權限管理員</option>
                 </select>
@@ -80,7 +79,7 @@
         <!-- 1. 打卡頁面 -->
         <div id="page-clock" class="page active">
             <div class="card">
-                <h3>⏰ 今日出勤打卡 (防重複限制)</h3>
+                <h3>⏰ 今日出勤打卡 (含GPS定位)</h3>
                 <button class="btn btn-success" id="btn-clock-in" onclick="submitClock('上班')">🌞 上班打卡</button>
                 <button class="btn btn-danger" id="btn-clock-out" onclick="submitClock('下班')">🌜 下班打卡</button>
             </div>
@@ -89,14 +88,13 @@
         <!-- 2. 請假申請 -->
         <div id="page-leave" class="page">
             <div class="card">
-                <h3>🌴 線上請假申請 (預設送審中)</h3>
+                <h3>🌴 線上請假申請</h3>
                 <div class="form-group">
                     <label>假別選擇</label>
                     <select id="leave-type" class="form-control">
                         <option value="特休">特休 (薪資照給)</option>
                         <option value="病假">病假 (半薪)</option>
                         <option value="事假">事假 (無薪)</option>
-                        <option value="公假/婚假/喪假">公假/婚假/喪假</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -115,7 +113,7 @@
             </div>
         </div>
 
-        <!-- 3. 加班申請 (此處已確實改為與請假相同的起訖時間模式) -->
+        <!-- 3. 加班申請 -->
         <div id="page-overtime" class="page">
             <div class="card">
                 <h3>💪 加班延長工時申報 (起訖時間模式)</h3>
@@ -129,7 +127,7 @@
                 </div>
                 <div class="form-group">
                     <label>系統自動計算時數</label>
-                    <input type="text" id="ot-hours-display" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="請先選擇上方起訖時間">
+                    <input type="text" id="ot-hours-display" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="請先選擇上方時間">
                 </div>
                 <div class="form-group">
                     <label>業務內容概述</label>
@@ -143,14 +141,14 @@
         <div id="page-history" class="page">
             <div class="card">
                 <h3 id="history-title">🔍 個人差勤與簽核進度</h3>
-                <div id="loading" style="display:none; text-align:center; padding:10px; color:#666;">通訊中，請稍候...</div>
+                <div id="loading" style="display:none; text-align:center; padding:10px; color:#666;">通訊中...</div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>類別/時間</th>
-                                <th>項目內容</th>
-                                <th>狀態/審核人員</th>
+                                <th>人員 / 工號</th>
+                                <th>打卡 / 請假 / 加班項目</th>
+                                <th>審核狀態</th>
                             </tr>
                         </thead>
                         <tbody id="history-data"></tbody>
@@ -165,11 +163,15 @@
         <div class="nav-item active" onclick="switchPage('clock')"><span class="nav-icon">⏰</span>打卡</div>
         <div class="nav-item" onclick="switchPage('leave')"><span class="nav-icon">🌴</span>請假</div>
         <div class="nav-item" onclick="switchPage('overtime')"><span class="nav-icon">💪</span>加班</div>
-        <div class="nav-item" id="nav-history-btn" onclick="switchPage('history')"><span class="nav-icon">🔍</span>進度查詢</div>
+        <div class="nav-item" onclick="switchPage('history')"><span class="nav-icon">🔍</span>進度查詢</div>
+        <!-- 管理員專屬按鈕，預設隱藏 -->
+        <div class="nav-item" id="nav-admin-btn" style="display: none; background-color: #fffaf0;" onclick="switchPage('admin_panel')">
+            <span class="nav-icon">🛠️</span>審核後台
+        </div>
     </div>
 
     <script>
-        // ⚠️ 請在下方雙引號內填入您的 Google Apps Script 網頁應用程式 URL ⚠️
+        // ⚠️ 記得把下面換成您剛剛在步驟1複製的真實 GAS 網址 ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
         document.addEventListener("DOMContentLoaded", function() {
@@ -189,23 +191,44 @@
             return { empId, empName };
         }
 
-        function toggleAdminTab() {
+        // 🔐 驗證後台密碼與畫面分流呈現
+        function verifyAdminRole() {
             const role = document.getElementById('user-role').value;
-            const btn = document.getElementById('nav-history-btn');
+            const adminBtn = document.getElementById('nav-admin-btn');
+            
             if (role === 'admin') {
-                btn.innerHTML = '<span class="nav-icon">🛠️</span>最高簽核後台';
+                const password = prompt("🔐 請輸入最高權限管理員密碼：");
+                if (password === "administor") {
+                    alert("🔓 密碼正確！已開啟最高權限審核後台。");
+                    adminBtn.style.display = "flex"; // 依權限呈現後台按鈕
+                    switchPage('admin_panel');
+                } else {
+                    alert("❌ 密碼錯誤！恢復為一般員工權限。");
+                    document.getElementById('user-role').value = 'user';
+                    adminBtn.style.display = "none";
+                    switchPage('clock');
+                }
             } else {
-                btn.innerHTML = '<span class="nav-icon">🔍</span>進度查詢';
+                adminBtn.style.display = "none";
+                switchPage('clock');
             }
-            if(document.getElementById('page-history').classList.contains('active')) fetchHistory();
         }
 
         function switchPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('page-' + pageId).classList.add('active');
-            event.currentTarget.classList.add('active');
-            if(pageId === 'history') fetchHistory();
+            
+            if (pageId === 'admin_panel') {
+                document.getElementById('page-history').classList.add('active');
+                document.getElementById('nav-admin-btn').classList.add('active');
+                fetchHistory('admin');
+            } else {
+                document.getElementById('page-' + pageId).classList.add('active');
+                // 尋找對應的導覽列項目加 active
+                const idx = pageId === 'clock' ? 0 : pageId === 'leave' ? 1 : pageId === 'overtime' ? 2 : 3;
+                document.querySelectorAll('.nav-bar .nav-item')[idx].classList.add('active');
+                if (pageId === 'history') fetchHistory('user');
+            }
         }
 
         function calculateOTHours() {
@@ -217,131 +240,104 @@
             document.getElementById('ot-hours-display').value = (diff / (1000 * 60 * 60)).toFixed(1) + " 小時";
         }
 
-        function setSubmitting(isSubmit, btnId) {
-            const btns = ['btn-clock-in', 'btn-clock-out', 'btn-leave', 'btn-overtime'];
-            btns.forEach(id => {
-                const b = document.getElementById(id);
-                if(b) {
-                    b.disabled = isSubmit;
-                    if(isSubmit && id === btnId) b.innerText = "連線傳送中...";
-                }
-            });
-            if(!isSubmit) {
-                if(document.getElementById('btn-clock-in')) document.getElementById('btn-clock-in').innerText = "🌞 上班打卡";
-                if(document.getElementById('btn-clock-out')) document.getElementById('btn-clock-out').innerText = "🌜 下班打卡";
-                if(document.getElementById('btn-leave')) document.getElementById('btn-leave').innerText = "送出請假申請";
-                if(document.getElementById('btn-overtime')) document.getElementById('btn-overtime').innerText = "送出加班申報";
-            }
-        }
-
-        function sendPayload(payload, successMsg, btnId) {
-            const identity = validateIdentity();
-            if(!identity) return;
-            payload.empId = identity.empId;
-            payload.empName = identity.empName;
-
-            setSubmitting(true, btnId);
-
-            fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) })
-            .then(res => res.json())
-            .then(res => {
-                setSubmitting(false);
-                if(res.status === "success") {
-                    alert(successMsg);
-                    if(payload.action==='leave') { document.getElementById('leave-start').value=''; document.getElementById('leave-end').value=''; document.getElementById('leave-reason').value=''; }
-                    if(payload.action==='overtime') { document.getElementById('ot-start').value=''; document.getElementById('ot-end').value=''; document.getElementById('ot-hours-display').value=''; document.getElementById('ot-reason').value=''; }
-                } else { alert("失敗：" + res.message); }
-            })
-            .catch(err => { setSubmitting(false); alert("伺服器連線失敗"); });
-        }
-
         function submitClock(type) {
             const identity = validateIdentity(); if(!identity) return;
-            const btnId = type === '上班' ? 'btn-clock-in' : 'btn-clock-out';
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    sendPayload({ action: "clock", type: type, lat: pos.coords.latitude, lng: pos.coords.longitude }, `${type}打卡成功！`, btnId);
+                    const locStr = pos.coords.latitude.toFixed(6) + ", " + pos.coords.longitude.toFixed(6);
+                    const payload = { action: "clock", type: type, location: locStr, empId: identity.empId, empName: identity.empName };
+                    
+                    fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) })
+                    .then(res => res.json())
+                    .then(res => {
+                        if(res.status === "success") { alert(`${type}打卡成功！\n位置：${locStr}`); } 
+                        else { alert(res.message); }
+                    }).catch(err => alert("連線失敗"));
                 },
-                (err) => { alert("GPS定位失敗，網頁打卡必須允許位置存取權限。"); },
+                (err) => { alert("GPS定位失敗，請確保手機已開啟定位權限。"); },
                 { enableHighAccuracy: true, timeout: 7000 }
             );
         }
 
         function submitLeave() {
+            const identity = validateIdentity(); if(!identity) return;
             const start = document.getElementById('leave-start').value;
             const end = document.getElementById('leave-end').value;
             const reason = document.getElementById('leave-reason').value;
             if(!start || !end || !reason) { alert("請填寫完整請假欄位"); return; }
-            sendPayload({ action: "leave", type: document.getElementById('leave-type').value, start, end, reason }, "請假單已送出，目前狀態：送審中", "btn-leave");
+            
+            const payload = { action: "leave", type: document.getElementById('leave-type').value, start, end, reason, empId: identity.empId, empName: identity.empName };
+            fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
+                if(res.status==='success'){ alert("請假單已送出！"); switchPage('history'); }
+            });
         }
 
-        // 修正：對應新的後端起訖時間參數
         function submitOvertime() {
+            const identity = validateIdentity(); if(!identity) return;
             const start = document.getElementById('ot-start').value;
             const end = document.getElementById('ot-end').value;
             const hours = document.getElementById('ot-hours-display').value;
             const reason = document.getElementById('ot-reason').value;
             if(!start || !end || !reason) { alert("請填寫完整加班欄位"); return; }
-            sendPayload({ action: "overtime", start, end, hours, reason }, "加班單已送出，目前狀態：送審中", "btn-overtime");
+            
+            const payload = { action: "overtime", start, end, hours, reason, empId: identity.empId, empName: identity.empName };
+            fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
+                if(res.status==='success'){ alert("加班單已送出！"); switchPage('history'); }
+            });
         }
 
-        function fetchHistory() {
+        function fetchHistory(currentMode) {
             const identity = validateIdentity(); if(!identity) return;
-            const role = document.getElementById('user-role').value;
             const loading = document.getElementById('loading');
             const tbody = document.getElementById('history-data');
             
-            document.getElementById('history-title').innerText = role === 'admin' ? "🛠️ 最高權限簽核後台" : "🔍 個人差勤與簽核進度";
+            document.getElementById('history-title').innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人差勤與簽核進度";
             loading.style.display = "block"; tbody.innerHTML = "";
 
-            fetch(`${GAS_URL}?mode=${role}&empId=${identity.empId}`)
+            fetch(`${GAS_URL}?mode=${currentMode}&empId=${identity.empId}`)
             .then(res => res.json())
             .then(data => {
                 loading.style.display = "none";
                 if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#999;">暫無紀錄</td></tr>`; return; }
                 
                 data.forEach(item => {
-                    let badgeColor = "status-pending";
-                    if(item.status === "核准") badgeColor = "status-approved";
-                    if(item.status === "退回") badgeColor = "status-rejected";
-                    if(item.status === "簽核中") badgeColor = "status-signing";
-
+                    let badgeColor = item.status === "核准" ? "status-approved" : item.status === "退回" ? "status-rejected" : "status-pending";
+                    
                     let actionHtml = "";
-                    if(role === 'admin' && item.mainType !== '打卡') {
+                    if(currentMode === 'admin' && item.mainType !== '打卡') {
                         actionHtml = `
                             <div class="review-box">
                                 <strong>審核操作：</strong><br>
-                                負責人姓名：<input type="text" id="rev-name-${item.id}" style="width:70px;padding:2px;" placeholder="主管名"><br>
-                                意見：<input type="text" id="rev-comm-${item.id}" style="width:110px;padding:2px;" placeholder="備註"><br>
-                                <button onclick="executeReview('${item.id}', '核准')" style="background-color:#38a169;color:white;border:none;padding:3px;margin-top:4px;border-radius:4px;cursor:pointer;">核准</button>
-                                <button onclick="executeReview('${item.id}', '簽核中')" style="background-color:#3182ce;color:white;border:none;padding:3px;margin-top:4px;border-radius:4px;cursor:pointer;">簽核中</button>
-                                <button onclick="executeReview('${item.id}', '退回')" style="background-color:#e53e3e;color:white;border:none;padding:3px;margin-top:4px;border-radius:4px;cursor:pointer;">退回</button>
+                                主管姓名：<input type="text" id="rev-name-${item.id}" style="width:80px;padding:2px;" placeholder="主管名"><br>
+                                審核意見：<input type="text" id="rev-comm-${item.id}" style="width:120px;padding:2px;" placeholder="備註"><br>
+                                <button onclick="executeReview('${item.id}', '核准')" style="background-color:#38a169;color:white;border:none;padding:4px;margin-top:4px;border-radius:4px;cursor:pointer;">核准</button>
+                                <button onclick="executeReview('${item.id}', '退回')" style="background-color:#e53e3e;color:white;border:none;padding:4px;margin-top:4px;border-radius:4px;cursor:pointer;">退回</button>
                             </div>
                         `;
                     }
 
+                    // 對齊權限呈現：人員/工號、打卡/請假/加班項目、審核
                     const row = `<tr>
-                        <td><strong>[${item.mainType}]</strong><br><span style="color:#718096;font-size:11px;">${item.time}</span></td>
-                        <td><span class="status-badge ${item.mainType==='打卡'?'status-approved':''}">${item.type}</span><br>${item.detail} ${actionHtml}</td>
-                        <td><span class="status-badge ${badgeColor}">${item.status}</span><br><span style="font-size:11px;color:#718096;">簽核人: ${item.reviewer}</span></td>
+                        <td><strong>${item.empName}</strong><br><span style="color:#718096;">工號: ${item.empId}</span></td>
+                        <td><strong>[${item.mainType}]</strong> ${item.type}<br><span style="font-size:11px;color:#4a5568;">${item.detail}</span><br><span style="color:#999;font-size:10px;">${item.time}</span> ${actionHtml}</td>
+                        <td><span class="status-badge ${item.mainType==='打卡'?'status-approved':''} ${badgeColor}">${item.status}</span><br><span style="font-size:11px;color:#718096;">${item.reviewer}</span></td>
                     </tr>`;
                     tbody.innerHTML += row;
                 });
-            })
-            .catch(err => { loading.style.display = "none"; });
+            }).catch(err => { loading.style.display = "none"; });
         }
 
         function executeReview(targetId, statusValue) {
             const reviewer = document.getElementById(`rev-name-${targetId}`).value.trim();
             const comment = document.getElementById(`rev-comm-${targetId}`).value.trim();
-            if(!reviewer) { alert("請填寫審核人員（主管姓名）"); return; }
+            if(!reviewer) { alert("請填寫審核主管姓名"); return; }
             
             fetch(GAS_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "review", targetId, status: statusValue, reviewer, comment })
             })
             .then(res => res.json())
-            .then(res => { if(res.status==='success') { alert('審核狀態更新成功！'); fetchHistory(); } })
+            .then(res => { if(res.status==='success') { alert('審核完成！'); fetchHistory('admin'); } })
         }
     </script>
 </body>
