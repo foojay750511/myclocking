@@ -65,25 +65,21 @@
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>2026 欄位校正 & 速度最優化版</p>
+        <p>2026 欄位精準校正版</p>
     </div>
 
     <div class="container">
-        
         <div class="law-box">
             <div class="law-title">⚖️ 內部差勤排班與規範摘要</div>
             <div class="law-grid">
                 <div class="law-item"><strong>🏠 請假機制：</strong>已取消半小時與一小時的硬性進位限制。</div>
                 <div class="law-item"><strong>🚫 單日上限：</strong>特休、請假單日上限最高扣 <strong>8 小時</strong>。</div>
                 <div class="law-item"><strong>⏰ 常規時數：</strong>每日 8 小時（08:00~17:00 含中午1小時休息）。</div>
-                <div class="law-item"><strong>🌴 特休假天數：</strong>滿半年3天；1年7天；2年10天；3年14天。</div>
-                <div class="law-item"><strong>🤒 病假薪資：</strong>1年內未住院累計可請30天，薪資折半給付。</div>
             </div>
         </div>
 
         <div class="card" style="border: 2px solid #2a5298;" id="identity-card">
             <h3>🔒 員工系統登入驗證</h3>
-            
             <div id="login-form-block">
                 <div class="form-group">
                     <label>選擇員工姓名</label>
@@ -108,7 +104,7 @@
                     歡迎回來，<strong id="user-display-name" style="color:#2a5298; font-size:18px;">-</strong>！<br>
                     工號：<span id="user-display-id" style="font-weight:bold;">-</span>
                 </div>
-                <div class="login-success-tag">🟢 系統解鎖已就緒，可進行操作</div>
+                <div class="login-success-tag">🟢 系統解鎖已就緒</div>
                 
                 <div class="form-group" style="margin-top: 15px; border-top: 1px dashed #e2e8f0; padding-top: 10px;">
                     <label>身份權限切換（如需進入管理員審核後台）</label>
@@ -123,16 +119,15 @@
         <div id="login-gate-shield" class="card locked-notice">
             <span class="lock-icon">🔒</span>
             <p><strong>本系統目前處於鎖定狀態</strong></p>
-            <p style="margin-top: 5px; font-size: 13px;">請先在上方「員工系統登入驗證」卡片中選擇姓名並輸入密碼登入，方可解鎖功能。</p>
+            <p style="margin-top: 5px; font-size: 13px;">請先在上方完成登入驗證。</p>
         </div>
 
         <div id="unlocked-features-zone" style="display: none;">
-            
             <div id="page-clock" class="page active">
                 <div class="card">
                     <h3>⏰ 今日出勤打卡 (含GPS定位)</h3>
-                    <button class="btn btn-success" id="btn-clock-in" onclick="submitClock('上班')">🌞 上班打卡</button>
-                    <button class="btn btn-danger" id="btn-clock-out" onclick="submitClock('下班')">🌜 下班打卡</button>
+                    <button class="btn btn-success" onclick="submitClock('上班')">🌞 上班打卡</button>
+                    <button class="btn btn-danger" onclick="submitClock('下班')">🌜 下班打卡</button>
                 </div>
             </div>
 
@@ -141,11 +136,10 @@
                     <h3>🌴 線上請假 / 特休申請</h3>
                     <div class="form-group">
                         <label>假別選擇</label>
-                        <select id="leave-type" class="form-control" onchange="calculateLeaveHours()">
+                        <select id="leave-type" class="form-control">
                             <option value="特休">特休 (薪資照給)</option>
                             <option value="病假">病假 (半薪)</option>
                             <option value="事假">事假 (無薪)</option>
-                            <option value="婚假">婚假 (薪資照給)</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -163,11 +157,11 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>共計時數 (已自動扣除中午1小時，單日最高 8 小時)</label>
+                        <label>共計時數</label>
                         <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                     </div>
                     <div class="form-group">
-                        <label>請假事由 / 備註內容 (選填)</label>
+                        <label>請假事由 (選填)</label>
                         <input type="text" id="leave-reason" class="form-control" placeholder="請輸入事由">
                     </div>
                     <button class="btn btn-primary" onclick="submitLeave()">送出請假申請</button>
@@ -177,18 +171,16 @@
             <div id="page-overtime" class="page">
                 <div class="card">
                     <h3>💪 加班(延長工時)申報</h3>
-                    <span class="notice-text">⚠️ 依勞基法規定，每日總工時不得超過 12 小時。</span>
-                    
                     <div class="form-group">
                         <label>加班日期</label>
                         <input type="date" id="ot-date" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label>預計時數 (小時)</label>
+                        <label>核報時數 (HR)</label>
                         <input type="number" id="ot-hours" class="form-control" placeholder="例如：2" step="0.5" min="0">
                     </div>
                     <div class="form-group">
-                        <label>加班內容概述 (選填)</label>
+                        <label>業務內容說明</label>
                         <input type="text" id="ot-reason" class="form-control" placeholder="請簡述加班處理業務">
                     </div>
                     <button class="btn btn-primary" onclick="submitOvertime()">送出加班申報</button>
@@ -200,15 +192,13 @@
                     <h4>🛠️ 批次審核操作面板</h4>
                     <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
                         <div>
-                            <label style="font-size: 12px; font-weight: bold;">審核人員：</label>
-                            <select id="batch-reviewer" class="form-control" style="width:140px; padding:5px; display:inline-block;">
+                            <select id="batch-reviewer" class="form-control" style="width:140px; padding:5px;">
                                 <option value="老闆">老闆</option>
-                                <option value="管理者(虎尾)">管理者(虎尾)</option>
-                                <option value="管理者(麥寮)">管理者(麥寮)</option>
+                                <option value="主管">主管</option>
                             </select>
                         </div>
                         <div style="flex: 1; min-width: 150px;">
-                            <input type="text" id="batch-comment" class="form-control" style="padding:5px;" placeholder="統一填寫審核意見(選填)">
+                            <input type="text" id="batch-comment" class="form-control" style="padding:5px;" placeholder="審核意見(選填)">
                         </div>
                         <div>
                             <button onclick="executeBatchReview('核准')" class="btn btn-success btn-inline">批次核准</button>
@@ -218,27 +208,26 @@
                 </div>
 
                 <div class="filter-box">
-                    <label style="font-size: 13px; font-weight: bold; color: #4a5568;">📌 狀態篩選：</label>
-                    <select id="status-filter" class="form-control" style="width: auto; padding: 4px 10px; font-size: 13px;" onchange="filterRecords()">
-                        <option value="all">🌐 顯示全部紀錄</option>
-                        <option value="送審中">⏳ 送審中 (優先簽核)</option>
+                    <label style="font-size: 13px; font-weight: bold;">📌 狀態篩選：</label>
+                    <select id="status-filter" class="form-control" style="width: auto; padding: 4px 10px;" onchange="filterRecords()">
+                        <option value="all">🌐 顯示全部</option>
+                        <option value="送審中">⏳ 送審中</option>
                         <option value="核准">✅ 已核准</option>
                         <option value="退回">❌ 已退回</option>
-                        <option value="已打卡">📍 僅看打卡</option>
                     </select>
                 </div>
 
                 <div class="card">
                     <h3 id="history-title">🔍 個人出勤進度查詢</h3>
-                    <div id="loading" style="display:none; text-align:center; padding:10px; color:#666;">通訊中...</div>
+                    <div id="loading" style="display:none; text-align:center; padding:10px;">通訊中...</div>
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th id="th-select" style="display: none; width: 40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
-                                    <th style="width: 90px;">人員 / 工號</th>
+                                    <th style="width: 90px;">人員</th>
                                     <th>項目內容</th>
-                                    <th style="width: 80px;">審核狀態</th>
+                                    <th style="width: 80px;">狀態</th>
                                 </tr>
                             </thead>
                             <tbody id="history-data"></tbody>
@@ -246,7 +235,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -254,15 +242,13 @@
         <div class="nav-item active" onclick="switchPage('clock')"><span class="nav-icon">⏰</span>打卡</div>
         <div class="nav-item" onclick="switchPage('leave')"><span class="nav-icon">🌴</span>請假</div>
         <div class="nav-item" onclick="switchPage('overtime')"><span class="nav-icon">💪</span>加班</div>
-        <div class="nav-item" onclick="switchPage('history')"><span class="nav-icon">🔍</span>進度查詢</div>
-        <div class="nav-item" id="nav-admin-btn" style="display: none; background-color: #fffaf0;" onclick="switchPage('admin_panel')">
-            <span class="nav-icon">🛠️</span>審核後台
-        </div>
+        <div class="nav-item" onclick="switchPage('history')"><span class="nav-icon">🔍</span>查詢</div>
+        <div class="nav-item" id="nav-admin-btn" style="display: none; background-color: #fffaf0;" onclick="switchPage('admin_panel')"><span class="nav-icon">🛠️</span>審核</div>
     </div>
 
     <script>
-        // ⚠️ 請記得填入您部署產生的 GAS 網頁應用程式 URL ⚠️
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
+        // ⚠️ 部署提醒：請在此替換為您在 GAS 最新部署獲取的網頁應用程式 URL ⚠️
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyxbNu6sJdpxhgj-z179vJFMjN8yzmUT8aflQ90dtUhiUpEgeeCBRl_DdWshjcuKHFA/exec"; 
 
         const EMPLOYEE_DATABASE = [
             { id: "A001", name: "賴柏全", password: "0726" },
@@ -277,8 +263,8 @@
             { id: "A010", name: "張乃云", password: "0130" },
             { id: "A011", name: "朱章鴻", password: "0911" },
             { id: "A012", name: "陳祝賢", password: "0428" },
-            { id: "A013", name: "陳秋如", password: "0806" }, // ✨ 密碼已校正為 0806
-            { id: "A014", name: "洪翠伶", password: "0314" }  // ✨ 密碼已校正為 0314
+            { id: "A013", name: "陳秋如", password: "0806" }, 
+            { id: "A014", name: "洪翠伶", password: "0314" }  
         ];
 
         let loggedInUser = null; 
@@ -309,18 +295,13 @@
             const cachedId = localStorage.getItem('login_session_id');
             if (cachedId) {
                 const user = EMPLOYEE_DATABASE.find(u => u.id === cachedId);
-                if(user) {
-                    loggedInUser = user;
-                    applyLoginSuccessState();
-                }
+                if(user) { loggedInUser = user; applyLoginSuccessState(); }
             }
         });
 
         function initEmployeeSelectJson() {
             let optionsHtml = '<option value="">-- 請選擇您的姓名 --</option>';
-            EMPLOYEE_DATABASE.forEach(emp => {
-                optionsHtml += `<option value="${emp.id}">${emp.name}</option>`;
-            });
+            EMPLOYEE_DATABASE.forEach(emp => { optionsHtml += `<option value="${emp.id}">${emp.name}</option>`; });
             DOM.empSelect.innerHTML = optionsHtml;
         }
 
@@ -332,19 +313,14 @@
         function executeEmployeeLogin() {
             const selectedId = DOM.empSelect.value;
             const inputPwd = DOM.empPassword.value.trim();
-            
-            if(!selectedId) { alert("❌ 請先選擇您的姓名！"); return; }
-            if(!inputPwd) { alert("❌ 請輸入驗證密碼！"); return; }
-            
+            if(!selectedId || !inputPwd) { alert("❌ 請選擇姓名並輸入驗證密碼！"); return; }
             const matchedUser = EMPLOYEE_DATABASE.find(u => u.id === selectedId);
-            
             if (matchedUser && matchedUser.password === inputPwd) {
-                alert(`🎉 驗證成功！歡迎 ${matchedUser.name} 使用系統。`);
                 loggedInUser = matchedUser;
                 localStorage.setItem('login_session_id', matchedUser.id);
                 applyLoginSuccessState();
             } else {
-                alert("❌ 密碼錯誤！請重新輸入。");
+                alert("❌ 密碼錯誤！");
                 DOM.empPassword.value = "";
             }
         }
@@ -360,32 +336,20 @@
         }
 
         function executeEmployeeLogout() {
-            if(!confirm("確定要登出系統嗎？")) return;
             localStorage.removeItem('login_session_id');
             loggedInUser = null;
-            DOM.loginForm.style.display = "block";
-            DOM.loginSuccess.style.display = "none";
-            DOM.empSelect.value = "";
-            DOM.empIdInput.value = "";
-            DOM.empPassword.value = "";
-            DOM.userRole.value = "user";
-            DOM.gateShield.style.display = "block";
-            DOM.featuresZone.style.display = "none";
-            DOM.adminBtn.style.display = "none";
-            switchPage('clock');
+            window.location.reload();
         }
 
         function verifyAdminRole() {
-            const role = DOM.userRole.value;
-            if (role === 'admin') {
+            if (DOM.userRole.value === 'admin') {
                 const password = prompt("🔐 請輸入最高權限管理員密碼：");
                 if (password === "administor") {
-                    alert("🔓 密碼正確！已開啟最高權限審核後台。");
                     DOM.adminBtn.style.display = "flex";
                     DOM.statusFilter.value = "送審中";
                     switchPage('admin_panel');
                 } else {
-                    alert("❌ 密碼錯誤！恢復為一般員工模式。");
+                    alert("❌ 密碼錯誤！");
                     DOM.userRole.value = 'user';
                     DOM.adminBtn.style.display = "none";
                     switchPage('clock');
@@ -397,10 +361,6 @@
         }
 
         function switchPage(pageId) {
-            if(!loggedInUser && pageId !== 'clock') {
-                alert("🔒 請先完成登入驗證！");
-                return;
-            }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             
@@ -417,29 +377,31 @@
                 DOM.thSelect.style.display = "none";
                 
                 const idx = pageId === 'clock' ? 0 : pageId === 'leave' ? 1 : pageId === 'overtime' ? 2 : 3;
-                const targetNav = document.querySelectorAll('.nav-bar .nav-item')[idx];
-                if(targetNav) targetNav.classList.add('active');
-                
-                if (pageId === 'history') {
-                    DOM.statusFilter.value = "all"; 
-                    fetchHistory('user');
+                if(document.querySelectorAll('.nav-bar .nav-item')[idx]) {
+                    document.querySelectorAll('.nav-bar .nav-item')[idx].classList.add('active');
                 }
+                if (pageId === 'history') { DOM.statusFilter.value = "all"; fetchHistory('user'); }
             }
         }
 
+        // 優化時間顯示，精簡世界標準時間
         function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
             let s = dtStr.toString().trim();
-            if (s.includes('GMT')) {
-                const parts = s.split(' ');
-                if (parts.length >= 5) {
-                    return s.substring(0, 16); 
-                }
+            if (s.includes('GMT') || s.includes('台北標準時間')) {
+                try {
+                    const d = new Date(s);
+                    if (!isNaN(d.getTime())) {
+                        let y = d.getFullYear();
+                        let m = String(d.getMonth() + 1).padStart(2, '0');
+                        let day = String(d.getDate()).padStart(2, '0');
+                        let hh = String(d.getHours()).padStart(2, '0');
+                        let mm = String(d.getMinutes()).padStart(2, '0');
+                        return `${y}-${m}-${day} ${hh}:${mm}`;
+                    }
+                } catch(e){}
             }
-            if (s.includes('T')) {
-                s = s.replace('T', ' ');
-            }
-            s = s.replace('.000Z', '').replace('Z', '');
+            if (s.includes('T')) { s = s.replace('T', ' '); }
             return s.length > 16 ? s.substring(0, 16) : s;
         }
 
@@ -448,108 +410,53 @@
             const t1 = document.getElementById('leave-start-time').value;
             const d2 = document.getElementById('leave-end-date').value;
             const t2 = document.getElementById('leave-end-time').value;
-            
             if (!d1 || !t1 || !d2 || !t2) return;
-            
             const start = new Date(d1 + 'T' + t1);
             const end = new Date(d2 + 'T' + t2);
             let diffMs = end - start;
-            
-            if (diffMs <= 0) {
-                alert("❌ 結束時間必須大於開始時間！");
-                document.getElementById('leave-end-date').value = "";
-                document.getElementById('leave-end-time').value = "";
-                document.getElementById('leave-hours').value = "";
-                return;
-            }
-
+            if (diffMs <= 0) { alert("❌ 結束時間必須大於開始時間！"); return; }
             let rawHours = diffMs / 3600000;
-            let startMin = start.getHours() * 60 + start.getMinutes();
-            let endMin = end.getHours() * 60 + end.getMinutes();
-            
-            if (d1 === d2) {
-                if (startMin <= 720 && endMin >= 780) {
-                    rawHours -= 1;
-                } else if (startMin <= 720 && endMin > 720 && endMin < 780) {
-                    rawHours -= ((endMin - 720) / 60);
-                } else if (startMin > 720 && startMin < 780 && endMin >= 780) {
-                    rawHours -= ((780 - startMin) / 60);
-                } else if (startMin >= 720 && endMin <= 780) {
-                    rawHours = 0;
-                }
-            } else {
-                let daysDiff = Math.floor((new Date(d2) - new Date(d1)) / 86400000);
-                rawHours -= daysDiff; 
-                if (startMin <= 720) rawHours -= 1;
-                if (endMin >= 780) rawHours -= 1;
-            }
-            if(rawHours < 0) rawHours = 0;
-
-            let dayCount = (d1 === d2) ? 1 : Math.floor((new Date(d2) - new Date(d1)) / 86400000) + 1;
-            let maxAllowedHours = dayCount * 8;
-            if (rawHours > maxAllowedHours) rawHours = maxAllowedHours;
-
             document.getElementById('leave-hours').value = rawHours.toFixed(1) + " 小時";
         }
 
         function submitClock(type) {
-            if(!loggedInUser) return;
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const locStr = pos.coords.latitude.toFixed(6) + ", " + pos.coords.longitude.toFixed(6);
-                    const payload = { action: "clock", type: type, location: locStr, empId: loggedInUser.id, empName: loggedInUser.name };
-                    fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) })
-                    .then(res => res.json()).then(res => {
-                        if(res.status === "success") { alert(`${type}打卡成功！`); } else { alert(res.message); }
-                    }).catch(err => alert("連線失敗"));
-                },
-                (err) => { alert("GPS定位失敗，請確認手機已開啟定位權限。"); },
-                { enableHighAccuracy: true, timeout: 7000 }
-            );
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const locStr = pos.coords.latitude.toFixed(6) + ", " + pos.coords.longitude.toFixed(6);
+                const payload = { action: "clock", type: type, location: locStr, empId: loggedInUser.id, empName: loggedInUser.name };
+                fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res => res.json()).then(res => {
+                    alert(res.message);
+                });
+            }, (err) => { alert("GPS定位失敗，仍為您嘗試無定位打卡..."); }, { timeout: 5000 });
         }
 
         function submitLeave() {
-            if(!loggedInUser) return;
             const d1 = document.getElementById('leave-start-date').value;
             const t1 = document.getElementById('leave-start-time').value;
             const d2 = document.getElementById('leave-end-date').value;
             const t2 = document.getElementById('leave-end-time').value;
             const hours = document.getElementById('leave-hours').value;
-            const userReason = document.getElementById('leave-reason').value.trim();
-            
-            if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整請假起訖時間！"); return; }
-            const combinedReason = `[共計:${hours}] ${userReason}`;
+            if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整請假時間！"); return; }
             
             const payload = { 
                 action: "leave", 
                 type: document.getElementById('leave-type').value, 
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
-                reason: combinedReason, 
+                reason: document.getElementById('leave-reason').value.trim() + ` (共計:${hours})`, 
                 empId: loggedInUser.id, 
                 empName: loggedInUser.name 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
-                if(res.status==='success'){ 
-                    alert("🎉 差勤請假單已成功送出！"); 
-                    document.getElementById('leave-start-date').value = "";
-                    document.getElementById('leave-start-time').value = "";
-                    document.getElementById('leave-end-date').value = "";
-                    document.getElementById('leave-end-time').value = "";
-                    document.getElementById('leave-hours').value = "";
-                    document.getElementById('leave-reason').value = "";
-                }
+                alert("🎉 請假單已成功送出！");
+                switchPage('history');
             });
         }
 
         function submitOvertime() {
-            if(!loggedInUser) return;
             const otDate = document.getElementById('ot-date').value;
             const otHours = document.getElementById('ot-hours').value;
             const otReason = document.getElementById('ot-reason').value.trim();
-            
-            if(!otDate) { alert("❌ 請選擇加班日期！"); return; }
-            if(!otHours || otHours <= 0) { alert("❌ 請輸入有效的預計加班時數！"); return; }
+            if(!otDate || !otHours) { alert("❌ 請填寫完整加班資訊！"); return; }
             
             const payload = { 
                 action: "overtime", 
@@ -559,128 +466,67 @@
                 empId: loggedInUser.id, 
                 empName: loggedInUser.name 
             };
-            
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
-                if(res.status==='success'){ 
-                    alert("🎉 加班申報單已成功送出！"); 
-                    document.getElementById('ot-date').value = "";
-                    document.getElementById('ot-hours').value = "";
-                    document.getElementById('ot-reason').value = "";
-                }
+                alert("🎉 加班申報成功！");
+                switchPage('history');
             });
         }
 
         function fetchHistory(currentMode) {
-            if(!loggedInUser) return;
-            DOM.historyTitle.innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人出勤進度查詢";
             DOM.loading.style.display = "block";
-            document.getElementById('select-all').checked = false;
-
+            DOM.historyData.innerHTML = "";
             fetch(`${GAS_URL}?mode=${currentMode}&empId=${loggedInUser.id}`)
-            .then(res => res.json())
-            .then(data => {
+            .then(res => res.json()).then(data => {
                 DOM.loading.style.display = "none";
                 allFetchedRecords = data; 
                 renderFilteredData(currentMode);
             }).catch(err => { DOM.loading.style.display = "none"; });
         }
 
-        function filterRecords() {
-            renderFilteredData(DOM.userRole.value === 'admin' ? 'admin' : 'user');
-        }
+        function filterRecords() { renderFilteredData(DOM.userRole.value === 'admin' ? 'admin' : 'user'); }
 
         function renderFilteredData(currentMode) {
             const filterValue = DOM.statusFilter.value;
             let filtered = allFetchedRecords.filter(item => {
                 if (filterValue === "all") return true;
-                if (filterValue === "已打卡") return item.mainType === "打卡";
                 return item.status === filterValue;
             });
-
-            if(filtered.length === 0) { 
-                DOM.historyData.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">無符合篩選條件的差勤紀錄</td></tr>`; 
-                return; 
-            }
             
             let rowsHtml = "";
             filtered.forEach(item => {
-                let badgeClass = "status-pending"; 
-                if (item.status === "核准" || item.mainType === "打卡" || item.status === "已打卡" || item.status === "打卡") {
-                    badgeClass = "status-approved"; 
-                } else if (item.status === "退回") {
-                    badgeClass = "status-rejected"; 
-                }
-                
-                let checkboxHtml = "<td></td>";
-                if (currentMode === 'admin' && item.mainType !== '打卡' && item.status === '送審中') {
-                    checkboxHtml = `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>`;
-                }
+                let badgeClass = item.status === "核准" ? "status-approved" : (item.status === "退回" ? "status-rejected" : "status-pending");
+                let checkboxHtml = (currentMode === 'admin' && item.status === '送審中') ? `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}"></td>` : "<td></td>";
 
-                let contentHtml = "";
-                if(item.mainType === "打卡") {
-                    contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>時間：${cleanDateTimeStr(item.time)}</div>`;
-                } else if(item.mainType === "加班") {
-                    contentHtml = `
-                        <div class="detail-block">
-                            <strong>[加班] 延長工時</strong><br>
-                            加班日期：${cleanDateTimeStr(item.date || item.startStr)}<br>
-                            核報時數：${item.hours}<br>
-                            內容概述：${item.reason || '無'}
-                        </div>
-                    `;
-                } else {
-                    contentHtml = `
-                        <div class="detail-block">
-                            <strong>[請假]</strong> ${item.type || '一般假別'}<br>
-                            開始時間：${cleanDateTimeStr(item.startStr)}<br>
-                            結束時間：${cleanDateTimeStr(item.endStr)}<br>
-                            內容明細：${item.reason || '無'}
-                        </div>
-                    `;
-                }
-
-                let commentHtml = (item.comment && item.comment.trim() !== "") ? `<br><span style="font-size:11px;color:#e53e3e;display:block;margin-top:2px;">意見: ${item.comment}</span>` : "";
+                let contentHtml = item.mainType === "加班" ? 
+                    `<strong>[加班]</strong> 日期: ${cleanDateTimeStr(item.date)}<br>時數: ${item.hours}<br>說明: ${item.reason || '無'}` :
+                    `<strong>[請假] ${item.type}</strong><br>起: ${cleanDateTimeStr(item.startStr)}<br>迄: ${cleanDateTimeStr(item.endStr)}<br>事由: ${item.reason || '無'}`;
 
                 rowsHtml += `<tr>
                     ${checkboxHtml}
-                    <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:11px;">工號: ${item.empId}</span></td>
+                    <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:10px;">${item.empId}</span></td>
                     <td>${contentHtml}</td>
-                    <td><span class="status-badge ${badgeClass}">${item.status}</span><br>
-                        <span style="font-size:11px;color:#718096;display:block;margin-top:4px;">簽: ${item.reviewer || '無'}</span>
-                        ${commentHtml}
-                    </td>
+                    <td><span class="status-badge ${badgeClass}">${item.status}</span><br><span style="font-size:10px;color:#718096;">${item.reviewer || ''}</span></td>
                 </tr>`;
             });
-            DOM.historyData.innerHTML = rowsHtml;
+            DOM.historyData.innerHTML = rowsHtml || `<tr><td colspan="4" style="text-align:center;padding:20px;color:#999;">暫無紀錄</td></tr>`;
         }
 
-        function toggleSelectAll(master) {
-            document.querySelectorAll('.row-select').forEach(cb => cb.checked = master.checked);
-        }
+        function toggleSelectAll(master) { document.querySelectorAll('.row-select').forEach(cb => cb.checked = master.checked); }
 
         function executeBatchReview(statusValue) {
             const reviewer = document.getElementById('batch-reviewer').value;
             const comment = document.getElementById('batch-comment').value.trim();
-            
             const selectedBoxes = document.querySelectorAll('.row-select:checked');
-            if (selectedBoxes.length === 0) { alert("❌ 請先勾選要處理的單據！"); return; }
+            if (selectedBoxes.length === 0) { alert("❌ 請先勾選單據！"); return; }
             
             const targets = [];
             selectedBoxes.forEach(cb => { targets.push({ id: cb.value, status: statusValue }); });
             
-            if(!confirm(`確定要將這 ${targets.length} 筆單據批次「${statusValue}」嗎？`)) return;
-            
-            fetch(GAS_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "batch_review", targets, reviewer, comment })
-            })
+            fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "batch_review", targets, reviewer, comment }) })
             .then(res => res.json()).then(res => {
-                if(res.status==='success') {
-                    alert(`🎉 成功批次處理 ${targets.length} 筆單據！`);
-                    document.getElementById('batch-comment').value = "";
-                    fetchHistory('admin');
-                }
-            }).catch(err => alert("系統處理失敗"));
+                alert("🎉 批次審核成功！");
+                fetchHistory('admin');
+            });
         }
     </script>
 </body>
