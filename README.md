@@ -1,1 +1,398 @@
-# myclocking
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雲端行動差勤管理系統 (獨立網頁版)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; color: #333; padding-bottom: 60px; }
+        .header { background: linear-gradient(135deg, #2c3e50, #1abc9c); color: white; padding: 20px; text-align: center; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 20px; margin-bottom: 5px; }
+        .header p { font-size: 13px; opacity: 0.9; }
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .card h3 { margin-bottom: 15px; font-size: 16px; color: #2c3e50; border-left: 4px solid #1abc9c; padding-left: 8px; }
+        
+        /* 表單元素 */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: bold; color: #555; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .form-control:focus { border-color: #1abc9c; outline: none; }
+        .form-row { display: flex; gap: 10px; }
+        
+        /* 按鈕樣式 */
+        .btn { display: block; width: 100%; padding: 12px; margin-bottom: 10px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; color: white; cursor: pointer; text-align: center; transition: background 0.2s; }
+        .btn:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; }
+        .btn-primary { background-color: #34495e; }
+        .btn-success { background-color: #2ecc71; }
+        .btn-danger { background-color: #e74c3c; }
+        .btn-query { background-color: #1abc9c; }
+        
+        /* 導覽列 */
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: table; width: 100%; height: 55px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); border-top: 1px solid #eee; table-layout: fixed; z-index: 100; }
+        .nav-item { display: table-cell; text-align: center; vertical-align: middle; color: #7f8c8d; font-size: 12px; text-decoration: none; cursor: pointer; }
+        .nav-item.active { color: #1abc9c; font-weight: bold; }
+        .nav-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+        
+        /* 頁面切換 */
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        /* 歷史紀錄表格 */
+        .table-responsive { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        .data-table th, .data-table td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        .data-table th { background-color: #f8f9fa; color: #2c3e50; font-weight: bold; }
+        .badge { padding: 3px 6px; border-radius: 4px; color: white; font-size: 11px; font-weight: bold; }
+        .bg-work { background-color: #2ecc71; }
+        .bg-leave { background-color: #f39c12; }
+        .bg-overtime { background-color: #9b59b6; }
+        
+        #loading { text-align: center; padding: 20px; color: #7f8c8d; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>雲端差勤管理系統</h1>
+        <p>免 App、免 LINE，瀏覽器全裝置支援</p>
+    </div>
+
+    <div class="container">
+        <div class="card" style="border: 1px solid #1abc9c; background-color: #fdfefe;">
+            <h3>🔑 員工身分設定</h3>
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>員工工號</label>
+                    <input type="text" id="emp-id" class="form-control" placeholder="例如: A001" onchange="saveEmpInfo()">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>員工姓名</label>
+                    <input type="text" id="emp-name" class="form-control" placeholder="例如: 王小明" onchange="saveEmpInfo()">
+                </div>
+            </div>
+            <p style="font-size: 11px; color: #95a5a6; margin-top: -5px;">* 系統將自動記憶此瀏覽器的登入狀態，不需每次輸入。</p>
+        </div>
+
+        <div id="page-clock" class="page active">
+            <div class="card">
+                <h3>⏰ 今日出勤打卡</h3>
+                <p style="font-size:13px; color:#7f8c8d; margin-bottom:15px;">點擊按鈕將即時定位 GPS 並記錄至後端試算表。</p>
+                <button class="btn btn-success" id="btn-clock-in" onclick="submitClock('上班')">🌞 上班打卡</button>
+                <button class="btn btn-danger" id="btn-clock-out" onclick="submitClock('下班')">🌜 下班打卡</button>
+            </div>
+        </div>
+
+        <div id="page-leave" class="page">
+            <div class="card">
+                <h3>🌴 線上請假申請</h3>
+                <div class="form-group">
+                    <label>假別選擇</label>
+                    <select id="leave-type" class="form-control">
+                        <option value="特休">特休 (薪資照給)</option>
+                        <option value="病假">病假 (半薪)</option>
+                        <option value="事假">事假 (無薪)</option>
+                        <option value="公假/婚假/喪假">公假/婚假/喪假</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>開始時間</label>
+                    <input type="datetime-local" id="leave-start" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>結束時間</label>
+                    <input type="datetime-local" id="leave-end" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>請假事由 / 備註</label>
+                    <input type="text" id="leave-reason" class="form-control" placeholder="請輸入請假原因">
+                </div>
+                <button class="btn btn-primary" id="btn-leave" onclick="submitLeave()">送出請假申請</button>
+            </div>
+        </div>
+
+        <div id="page-overtime" class="page">
+            <div class="card">
+                <h3>💪 加班(延長工時)申報</h3>
+                <p style="font-size:12px; color:#e74c3c; margin-bottom:10px;">⚠️ 依勞基法規定，每日總工時不得超過 12 小時。</p>
+                <div class="form-group">
+                    <label>加班開始時間</label>
+                    <input type="datetime-local" id="ot-start" class="form-control" onchange="calculateOTHours()">
+                </div>
+                <div class="form-group">
+                    <label>加班結束時間</label>
+                    <input type="datetime-local" id="ot-end" class="form-control" onchange="calculateOTHours()">
+                </div>
+                <div class="form-group">
+                    <label>系統自動計算時數 (小時)</label>
+                    <input type="text" id="ot-hours-display" class="form-control" style="background-color: #eee;" readonly placeholder="請先選擇上方起訖時間">
+                </div>
+                <div class="form-group">
+                    <label>加班內容概述</label>
+                    <input type="text" id="ot-reason" class="form-control" placeholder="請簡述加班處理業務">
+                </div>
+                <button class="btn btn-primary" id="btn-overtime" onclick="submitOvertime()">送出加班申報</button>
+            </div>
+        </div>
+
+        <div id="page-history" class="page">
+            <div class="card">
+                <h3>🔍 個人差勤紀錄查詢</h3>
+                <div class="form-group" style="display: table; width:100%;">
+                    <div style="display: table-cell; padding-right:5px;">
+                        <input type="date" id="query-start" class="form-control">
+                    </div>
+                    <div style="display: table-cell; padding-left:5px; width:100px;">
+                        <button class="btn btn-query" id="btn-query" style="margin:0; padding:10px;" onclick="fetchHistory()">查詢</button>
+                    </div>
+                </div>
+                
+                <div id="loading" style="display:none;">資料加載中...</div>
+                
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>時間/日期</th>
+                                <th>類別</th>
+                                <th>明細項目 / 內容</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-data">
+                            <tr>
+                                <td colspan="3" style="text-align:center; color:#999;">請點擊查詢載入資料</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="switchPage('clock')"><span class="nav-icon">⏰</span>打卡</div>
+        <div class="nav-item" onclick="switchPage('leave')"><span class="nav-icon">🌴</span>請假</div>
+        <div class="nav-item" onclick="switchPage('overtime')"><span class="nav-icon">💪</span>加班</div>
+        <div class="nav-item" onclick="switchPage('history')"><span class="nav-icon">🔍</span>查詢</div>
+    </div>
+
+    <script>
+        // ⚠️ 記得將下方網址替換為您的 Google Apps Script 應用程式網址 ⚠️
+        const GAS_URL = "https://foojay750511.github.io/myclocking/"; 
+
+        // 初始化
+        document.addEventListener("DOMContentLoaded", function() {
+            if (localStorage.getItem('clock_emp_id')) {
+                document.getElementById('emp-id').value = localStorage.getItem('clock_emp_id');
+            }
+            if (localStorage.getItem('clock_emp_name')) {
+                document.getElementById('emp-name').value = localStorage.getItem('clock_emp_name');
+            }
+            document.getElementById('query-start').value = new Date().toISOString().split('T')[0];
+        });
+
+        function saveEmpInfo() {
+            localStorage.setItem('clock_emp_id', document.getElementById('emp-id').value.trim());
+            localStorage.setItem('clock_emp_name', document.getElementById('emp-name').value.trim());
+        }
+
+        function validateIdentity() {
+            const empId = document.getElementById('emp-id').value.trim();
+            const empName = document.getElementById('emp-name').value.trim();
+            if (!empId || !empName) {
+                alert("❌ 請先填寫『員工工號』與『員工姓名』！");
+                return false;
+            }
+            return { empId, empName };
+        }
+
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if(pageId === 'history') { fetchHistory(); }
+        }
+
+        // 自動計算加班時數
+        function calculateOTHours() {
+            const start = document.getElementById('ot-start').value;
+            const end = document.getElementById('ot-end').value;
+            if (!start || !end) return;
+
+            const startTime = new Date(start);
+            const endTime = new Date(end);
+            
+            if (endTime <= startTime) {
+                alert("❌ 結束時間必須大於開始時間！");
+                document.getElementById('ot-end').value = "";
+                document.getElementById('ot-hours-display').value = "";
+                return;
+            }
+
+            const diffMs = endTime - startTime;
+            const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(1); // 四捨五入到小數點第一位
+            document.getElementById('ot-hours-display').value = diffHours;
+        }
+
+        // 防重複點擊鎖：傳送時鎖定所有按鈕
+        function toggleButtons(disabled, text = "") {
+            const ids = ['btn-clock-in', 'btn-clock-out', 'btn-leave', 'btn-overtime', 'btn-query'];
+            ids.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = disabled;
+                    if(disabled && id === event.target.id) {
+                        btn.dataset.oldText = btn.innerText;
+                        btn.innerText = "連線傳送中...";
+                    } else if (!disabled && id === event.target.id && btn.dataset.oldText) {
+                        btn.innerText = btn.dataset.oldText;
+                    }
+                }
+            });
+        }
+
+        // 共通通訊函數
+        function sendToBackend(payload, successMessage) {
+            const identity = validateIdentity();
+            if(!identity) return;
+
+            payload.empId = identity.empId;
+            payload.empName = identity.empName;
+
+            // 啟動防重複點擊鎖
+            toggleButtons(true);
+
+            fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(res => {
+                toggleButtons(false); // 解鎖
+                if(res.status === "success") {
+                    alert(successMessage);
+                    // 清空欄位
+                    if(payload.action === 'leave') {
+                        document.getElementById('leave-start').value = '';
+                        document.getElementById('leave-end').value = '';
+                        document.getElementById('leave-reason').value = '';
+                    } else if (payload.action === 'overtime') {
+                        document.getElementById('ot-start').value = '';
+                        document.getElementById('ot-end').value = '';
+                        document.getElementById('ot-hours-display').value = '';
+                        document.getElementById('ot-reason').value = '';
+                    }
+                } else {
+                    alert("建立失敗：" + res.message);
+                }
+            })
+            .catch(err => {
+                toggleButtons(false); // 解鎖
+                alert("連線後端伺服器失敗，請檢查網址或 GAS 權限設定。");
+                console.error(err);
+            });
+        }
+
+        // 1. 提交打卡
+        function submitClock(type) {
+            const identity = validateIdentity();
+            if(!identity) return;
+            if(!confirm(`工號: ${identity.empId}，確定要進行【${type}打卡】嗎？`)) return;
+            
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const payload = {
+                        action: "clock",
+                        type: type,
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    };
+                    sendToBackend(payload, `${type}打卡紀錄成功！`);
+                },
+                (err) => {
+                    alert("GPS 定位取得失敗！網頁打卡必須允許瀏覽器的位置存取權限。");
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        // 2. 提交請假
+        function submitLeave() {
+            const type = document.getElementById('leave-type').value;
+            const start = document.getElementById('leave-start').value;
+            const end = document.getElementById('leave-end').value;
+            const reason = document.getElementById('leave-reason').value;
+
+            if(!start || !end) { alert("請填寫完整的請假起訖時間！"); return; }
+            if(!reason) { alert("請填寫請假事由！"); return; }
+
+            const payload = { action: "leave", type: type, start: start, end: end, reason: reason };
+            sendToBackend(payload, "請假申請已成功提交並寫入資料庫！");
+        }
+
+        // 3. 提交加班
+        function submitOvertime() {
+            const start = document.getElementById('ot-start').value;
+            const end = document.getElementById('ot-end').value;
+            const hours = document.getElementById('ot-hours-display').value;
+            const reason = document.getElementById('ot-reason').value;
+
+            if(!start || !end || !hours || !reason) { alert("請填寫完整的加班報支資訊！"); return; }
+
+            // 把開始與結束時間一併放進備註，而主要欄位記錄「加班日期(取開始日)」與「計算出的時數」
+            const payload = { 
+                action: "overtime", 
+                date: start.split('T')[0], 
+                hours: hours, 
+                reason: `區間: ${start.replace('T',' ')}至${end.replace('T',' ')} (${reason})` 
+            };
+            sendToBackend(payload, "加班延長工時申報成功！");
+        }
+
+        // 4. 網頁即時查詢歷史紀錄
+        function fetchHistory() {
+            const identity = validateIdentity();
+            if(!identity) return;
+            
+            const dateStr = document.getElementById('query-start').value;
+            const loading = document.getElementById('loading');
+            const tbody = document.getElementById('history-data');
+            
+            loading.style.display = "block";
+            tbody.innerHTML = "";
+            
+            const url = `${GAS_URL}?empId=${encodeURIComponent(identity.empId)}&date=${dateStr}`;
+            
+            fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                loading.style.display = "none";
+                if(data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#999;">該日期範圍無任何差勤紀錄</td></tr>`;
+                    return;
+                }
+                
+                data.forEach(item => {
+                    let badgeClass = "bg-work";
+                    if(item.mainType === "請假") badgeClass = "bg-leave";
+                    if(item.mainType === "加班") badgeClass = "bg-overtime";
+                    
+                    const row = `<tr>
+                        <td>${item.time}</td>
+                        <td><span class="badge ${badgeClass}">${item.type}</span></td>
+                        <td>${item.detail}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            })
+            .catch(err => {
+                loading.style.display = "none";
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">歷史資料加載失敗</td></tr>`;
+                console.error(err);
+            });
+        }
+    </script>
+</body>
+</html>
