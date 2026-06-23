@@ -50,10 +50,11 @@
         .data-table th, .data-table td { border: 1px solid #e2e8f0; padding: 10px; vertical-align: middle; }
         .data-table th { background-color: #f7fafc; color: #4a5568; font-weight: bold; }
         
+        /* 🎨 依需求優化簽核狀態標籤顏色 */
         .status-badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; display: inline-block; }
-        .status-badge.status-approved { background-color: #38a169; }
-        .status-badge.status-rejected { background-color: #e53e3e; }
-        .status-badge.status-pending { background-color: #dd6b20; }
+        .status-badge.status-approved { background-color: #38a169; } /* 核准、打卡 綠色 */
+        .status-badge.status-rejected { background-color: #e53e3e; } /* 退回 紅色 */
+        .status-badge.status-pending { background-color: #dd6b20; }  /* 送審中 橘色 */
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .filter-box { background: #f7fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; }
@@ -71,10 +72,9 @@
     <div class="container">
         
         <div class="law-box">
-            <div class="law-title">⚖️ 2026 勞基法與請假規範摘要</div>
+            <div class="law-title">⚖️ 內部差勤排班與規範摘要</div>
             <div class="law-grid">
-                <div class="law-item"><strong>🏠 事假 / 🤒 病假：</strong>最小請假計算單位為 <strong>1 小時</strong>。</div>
-                <div class="law-item"><strong>🌴 特休 / 💍 婚假：</strong>最小請假計算單位為 <strong>0.5 小時</strong>。</div>
+                <div class="law-item"><strong>🏠 請假機制：</strong>已取消半小時與一小時的硬性進位限制。</div>
                 <div class="law-item"><strong>🚫 單日上限：</strong>特休、請假單日上限最高扣 <strong>8 小時</strong>。</div>
                 <div class="law-item"><strong>⏰ 常規時數：</strong>每日 8 小時（08:00~17:00 含中午1小時休息）。</div>
                 <div class="law-item"><strong>🌴 特休假天數：</strong>滿半年3天；1年7天；2年10天；3年14天。</div>
@@ -97,7 +97,7 @@
                     <input type="text" id="emp-id" class="form-control" placeholder="請先選擇姓名" disabled>
                 </div>
                 <div class="form-group">
-                    <label>登入驗證密碼 (預設為生日後四碼，例：0511)</label>
+                    <label>登入驗證密碼 (預設為生日後四碼)</label>
                     <input type="password" id="emp-password" class="form-control" placeholder="請輸入4位數密碼" pattern="\d*" inputmode="numeric">
                 </div>
                 <button class="btn btn-primary" onclick="executeEmployeeLogin()">🔓 驗證並登入系統</button>
@@ -164,7 +164,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>共計時數 (已依規範單位轉換且單日上限 8 小時)</label>
+                        <label>共計時數 (已自動扣除中午1小時休息，單日上限 8 小時)</label>
                         <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                     </div>
                     <div class="form-group">
@@ -273,7 +273,7 @@
         // ⚠️ 請填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
-        // 👥 員工資料名冊庫（已成功合併 14 位最新名冊）
+        // 👥 員工資料名冊庫
         const EMPLOYEE_DATABASE = [
             { id: "A001", name: "賴柏全", password: "0726" },
             { id: "A002", name: "廖彥珵", password: "0911" },
@@ -296,6 +296,7 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             initEmployeeSelectJson();
+            
             const cachedId = localStorage.getItem('login_session_id');
             if (cachedId) {
                 const user = EMPLOYEE_DATABASE.find(u => u.id === cachedId);
@@ -429,16 +430,13 @@
             }
         }
 
+        // 🔧 解決落差核心：直接乾淨輸出試算表原本傳過來的字串，不再進行本地時區二次格式化
         function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
-            try {
-                let s = dtStr.toString().trim();
-                s = s.replace('T', ' ');
-                s = s.replace('.000Z', '');
-                s = s.replace('Z', '');
-                if(s.length > 16) s = s.substring(0, 16); 
-                return s;
-            } catch(e) { return dtStr; }
+            let s = dtStr.toString().trim();
+            s = s.replace('T', ' ').replace('.000Z', '').replace('Z', '');
+            if(s.length > 16) s = s.substring(0, 16);
+            return s;
         }
 
         function calculateHours(prefix) {
@@ -485,13 +483,7 @@
 
             let finalHours = rawHours;
             if (prefix === 'leave') {
-                const leaveType = document.getElementById('leave-type').value;
-                if (leaveType === '事假' || leaveType === '病假') {
-                    finalHours = Math.ceil(finalHours);
-                } else {
-                    finalHours = Math.ceil(finalHours * 2) / 2;
-                }
-
+                // 💡 應需求：已拔除 Math.ceil 的 0.5 與 1 小時硬性限制，直接呈現精準時數
                 let dayCount = 1;
                 if (d1 !== d2) {
                     dayCount = Math.floor((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24)) + 1;
@@ -630,7 +622,13 @@
             }
             
             filtered.forEach(item => {
-                let badgeColor = item.status === "核准" ? "status-approved" : item.status === "退回" ? "status-rejected" : "status-pending";
+                // 🎨 依需求重新對應顏色標籤邏輯
+                let badgeClass = "status-pending"; // 預設送審中 = 橘色
+                if (item.status === "核准" || item.mainType === "打卡" || item.status === "已打卡") {
+                    badgeClass = "status-approved"; // 核准 & 打卡 = 綠色
+                } else if (item.status === "退回") {
+                    badgeClass = "status-rejected"; // 退回 = 紅色
+                }
                 
                 let checkboxHtml = "";
                 if (currentMode === 'admin') {
@@ -663,7 +661,7 @@
                     ${checkboxHtml}
                     <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:11px;">工號: ${item.empId}</span></td>
                     <td>${contentHtml}</td>
-                    <td><span class="status-badge ${item.mainType=='打卡'?'status-approved':''} ${badgeColor}">${item.status}</span><br>
+                    <td><span class="status-badge ${badgeClass}">${item.status}</span><br>
                         <span style="font-size:11px;color:#718096;display:block;margin-top:4px;">簽: ${item.reviewer || '無'}</span>
                         ${commentHtml}
                     </td>
