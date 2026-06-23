@@ -46,13 +46,14 @@
         .status-rejected { background-color: #e53e3e; }
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .detail-block { line-height: 1.6; font-size: 13px; color: #2d3748; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>優化日期時間格式 & 支援批次簽核</p>
+        <p>簡化顯示格式 & 隱私數據隔離版</p>
     </div>
 
     <div class="container">
@@ -61,17 +62,17 @@
             <div style="display: flex; gap: 10px;">
                 <div class="form-group" style="flex: 1;">
                     <label>員工工號</label>
-                    <input type="text" id="emp-id" class="form-control" placeholder="A001" onchange="saveEmpInfo()">
+                    <input type="text" id="emp-id" class="form-control" placeholder="請輸入工號" onchange="saveEmpInfo()">
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>員工姓名</label>
-                    <input type="text" id="emp-name" class="form-control" placeholder="張先生" onchange="saveEmpInfo()">
+                    <input type="text" id="emp-name" class="form-control" placeholder="請輸入姓名" onchange="saveEmpInfo()">
                 </div>
             </div>
             <div class="form-group">
                 <label>身份權限切換</label>
                 <select id="user-role" class="form-control" onchange="verifyAdminRole()">
-                    <option value="user">一般員工</option>
+                    <option value="user">一般員工 (僅看個人資訊)</option>
                     <option value="admin">最高權限管理員</option>
                 </select>
             </div>
@@ -115,7 +116,7 @@
                     <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                 </div>
                 <div class="form-group">
-                    <label>內容 / 備註</label>
+                    <label>請假事由 / 備註內容</label>
                     <input type="text" id="leave-reason" class="form-control" placeholder="請輸入事由">
                 </div>
                 <button class="btn btn-primary" onclick="submitLeave()">送出請假申請</button>
@@ -144,8 +145,8 @@
                     <input type="text" id="ot-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
                 </div>
                 <div class="form-group">
-                    <label>內容 / 業務概述</label>
-                    <input type="text" id="ot-reason" class="form-control" placeholder="請簡述加班處理業務">
+                    <label>工作內容概述</label>
+                    <input type="text" id="ot-reason" class="form-control" placeholder="請填寫加班處理的工作內容">
                 </div>
                 <button class="btn btn-primary" onclick="submitOvertime()">送出加班申報</button>
             </div>
@@ -175,16 +176,16 @@
             </div>
 
             <div class="card">
-                <h3 id="history-title">🔍 個人差勤與簽核進度</h3>
+                <h3 id="history-title">🔍 個人出勤進度查詢</h3>
                 <div id="loading" style="display:none; text-align:center; padding:10px; color:#666;">通訊中...</div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th id="th-select" style="display: none; width: 40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
-                                <th>人員 / 工號</th>
+                                <th style="width: 90px;">人員 / 工號</th>
                                 <th>項目內容</th>
-                                <th>審核狀態</th>
+                                <th style="width: 80px;">審核狀態</th>
                             </tr>
                         </thead>
                         <tbody id="history-data"></tbody>
@@ -216,6 +217,11 @@
         function saveEmpInfo() {
             localStorage.setItem('clock_emp_id', document.getElementById('emp-id').value.trim());
             localStorage.setItem('clock_emp_name', document.getElementById('emp-name').value.trim());
+            // 如果切換了工號，且目前在進度頁面，就自動重刷
+            if(document.getElementById('page-history').classList.contains('active')) {
+                const role = document.getElementById('user-role').value;
+                fetchHistory(role === 'admin' ? 'admin' : 'user');
+            }
         }
 
         function validateIdentity() {
@@ -231,12 +237,12 @@
             
             if (role === 'admin') {
                 const password = prompt("🔐 請輸入最高權限管理員密碼：");
-                if (password === "admin") {
+                if (password === "administor") {
                     alert("🔓 密碼正確！已開啟最高權限審核後台。");
                     adminBtn.style.display = "flex";
                     switchPage('admin_panel');
                 } else {
-                    alert("❌ 密碼錯誤！");
+                    alert("❌ 密碼錯誤！恢復為一般員工模式。");
                     document.getElementById('user-role').value = 'user';
                     adminBtn.style.display = "none";
                     switchPage('clock');
@@ -267,7 +273,15 @@
             }
         }
 
-        // 精準計算小時數
+        function formatDateTimeStr(dtStr) {
+            if(!dtStr) return "";
+            try {
+                // 將 2026-06-23 15:00 格式化
+                let cleanStr = dtStr.replace('T', ' ');
+                return cleanStr;
+            } catch(e) { return dtStr; }
+        }
+
         function calculateHours(prefix) {
             const d1 = document.getElementById(prefix + '-start-date').value;
             const t1 = document.getElementById(prefix + '-start-time').value;
@@ -287,7 +301,7 @@
                 document.getElementById(prefix + '-hours').value = "";
                 return;
             }
-            document.getElementById(prefix + '-hours').value = (diff / (1000 * 60 * 60)).toFixed(1) + " 小時";
+            document.getElementById(prefix + '-hours').value = (diff / (1000 * 60 * 60)).toFixed(1);
         }
 
         function submitClock(type) {
@@ -298,10 +312,10 @@
                     const payload = { action: "clock", type: type, location: locStr, empId: identity.empId, empName: identity.empName };
                     fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) })
                     .then(res => res.json()).then(res => {
-                        if(res.status === "success") { alert(`${type}打卡成功！\n位置：${locStr}`); } else { alert(res.message); }
+                        if(res.status === "success") { alert(`${type}打卡成功！`); } else { alert(res.message); }
                     }).catch(err => alert("連線失敗"));
                 },
-                (err) => { alert("GPS定位失敗，請確認已開啟手機定位權限。"); },
+                (err) => { alert("GPS定位失敗，請確認手機已開啟定位權限。"); },
                 { enableHighAccuracy: true, timeout: 7000 }
             );
         }
@@ -322,7 +336,7 @@
                 type: document.getElementById('leave-type').value, 
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
-                hours: hours,
+                hours: hours + " 小時",
                 reason: reason, 
                 empId: identity.empId, 
                 empName: identity.empName 
@@ -347,7 +361,7 @@
                 action: "overtime", 
                 start: d1 + " " + t1, 
                 end: d2 + " " + t2, 
-                hours: hours,
+                hours: hours + " 小時",
                 reason: reason, 
                 empId: identity.empId, 
                 empName: identity.empName 
@@ -362,7 +376,7 @@
             const loading = document.getElementById('loading');
             const tbody = document.getElementById('history-data');
             
-            document.getElementById('history-title').innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人差勤與進度查詢";
+            document.getElementById('history-title').innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人出勤進度查詢";
             loading.style.display = "block"; tbody.innerHTML = "";
             document.getElementById('select-all').checked = false;
 
@@ -370,12 +384,11 @@
             .then(res => res.json())
             .then(data => {
                 loading.style.display = "none";
-                if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;">暫無紀錄</td></tr>`; return; }
+                if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">暫無您工號屬性的出勤資料</td></tr>`; return; }
                 
                 data.forEach(item => {
                     let badgeColor = item.status === "核准" ? "status-approved" : item.status === "退回" ? "status-rejected" : "status-pending";
                     
-                    // 只有送審中的請假/加班單，管理員才能勾選批次審核
                     let checkboxHtml = "";
                     if (currentMode === 'admin') {
                         if (item.mainType !== '打卡' && item.status === '送審中') {
@@ -385,19 +398,30 @@
                         }
                     }
 
+                    // 🛠️ 核心微調：簡化成日期與清楚的行高排列
+                    let contentHtml = "";
+                    if(item.mainType === "打卡") {
+                        contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>${item.reason}</div>`;
+                    } else {
+                        // 請假或加班
+                        let contentLabel = item.mainType === "請假" ? "請假事由" : "工作內容";
+                        contentHtml = `
+                            <div class="detail-block">
+                                <strong>[${item.mainType}]</strong> ${item.type}<br>
+                                🪐 開始時間：${formatDateTimeStr(item.startStr)}<br>
+                                🪐 結束時間：${formatDateTimeStr(item.endStr)}<br>
+                                🪐 共計：${item.hours}<br>
+                                🪐 ${contentLabel}：${item.reason}
+                            </div>
+                        `;
+                    }
+
                     const row = `<tr>
                         ${checkboxHtml}
                         <td><strong>${item.empName}</strong><br><span style="color:#718096; font-size:11px;">工號: ${item.empId}</span></td>
-                        <td>
-                            <strong>[${item.mainType}]</strong> ${item.type}<br>
-                            <span style="color:#2a5298; font-weight:500;">日期+起始：${item.detail.split(' 至 ')[0] || ''}</span><br>
-                            <span style="color:#c53030; font-weight:500;">日期+結束：${item.detail.split(' 至 ')[1] || ''}</span><br>
-                            <strong>內容：</strong>${item.reason || item.detail}<br>
-                            <span style="color:#999; font-size:10px;">填單：${item.time}</span>
-                        </td>
-                        <td><span class="status-badge ${item.mainType==='打卡'?'status-approved':''} ${badgeColor}">${item.status}</span><br>
-                            <span style="font-size:11px;color:#718096;">核: ${item.reviewer || '無'}</span><br>
-                            <span style="font-size:10px;color:#999;">註: ${item.comment || '無'}</span>
+                        <td>${contentHtml}</td>
+                        <td><span class="status-badge ${item.mainType=='打卡'?'status-approved':''} ${badgeColor}">${item.status}</span><br>
+                            <span style="font-size:11px;color:#718096;display:block;margin-top:4px;">簽: ${item.reviewer || '無'}</span>
                         </td>
                     </tr>`;
                     tbody.innerHTML += row;
@@ -409,18 +433,17 @@
             document.querySelectorAll('.row-select').forEach(cb => cb.checked = master.checked);
         }
 
-        // 執行批次簽核
         function executeBatchReview(statusValue) {
             const reviewer = document.getElementById('batch-reviewer').value;
             const comment = document.getElementById('batch-comment').value.trim();
             
             const selectedBoxes = document.querySelectorAll('.row-select:checked');
-            if (selectedBoxes.length === 0) { alert("❌ 請先勾選要處理的申請單據！"); return; }
+            if (selectedBoxes.length === 0) { alert("❌ 請先勾選要處理的單據！"); return; }
             
             const targets = [];
             selectedBoxes.forEach(cb => { targets.push({ id: cb.value, status: statusValue }); });
             
-            if(!confirm(`確定要將選取的 ${targets.length} 筆單據「批次${statusValue}」嗎？`)) return;
+            if(!confirm(`確定要將這 ${targets.length} 筆單據批次「${statusValue}」嗎？`)) return;
             
             fetch(GAS_URL, {
                 method: "POST",
