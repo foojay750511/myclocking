@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行動差勤與權限管理系統</title>
+    <title>雲端差勤與簽核管理系統</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f5f7fa; color: #333; padding-bottom: 70px; }
@@ -14,9 +14,16 @@
         .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #eef2f5; }
         .card h3 { margin-bottom: 15px; font-size: 16px; color: #1e3c72; border-left: 4px solid #2a5298; padding-left: 8px; }
         
+        /* 勞基法宣導專區樣式 */
+        .law-box { background-color: #fffaf0; border: 1px solid #feebc8; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
+        .law-title { font-size: 14px; font-weight: bold; color: #dd6b20; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .law-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; color: #4a5568; }
+        .law-item { background: white; padding: 6px 10px; border-radius: 4px; border: 1px solid #fbd38d; }
+
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #4a5568; }
         .form-control { width: 100%; padding: 11px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 14px; background-color: #fff; }
+        .form-control:disabled { background-color: #edf2f7; color: #a0aec0; }
         .datetime-group { display: flex; gap: 8px; }
         .datetime-group input[type="date"] { flex: 1.2; }
         .datetime-group input[type="time"] { flex: 0.8; }
@@ -26,14 +33,18 @@
         .btn-success { background-color: #38a169; }
         .btn-danger { background-color: #e53e3e; }
         .btn-inline { display: inline-block; width: auto; padding: 6px 12px; font-size: 12px; margin: 2px; border-radius: 4px; }
+        .btn-logout { background-color: #718096; padding: 6px 12px; font-size: 12px; border-radius: 6px; color: white; border: none; cursor: pointer; float: right; margin-top: -5px; }
         
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; height: 60px; box-shadow: 0 -3px 12px rgba(0,0,0,0.08); border-top: 1px solid #edf2f7; z-index: 100; }
         .nav-item { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #718096; font-size: 11px; text-decoration: none; cursor: pointer; }
         .nav-item.active { color: #2a5298; font-weight: bold; }
         .nav-icon { font-size: 20px; margin-bottom: 2px; }
         
+        /* 鎖定遮罩與隱藏頁面 */
         .page { display: none; }
         .page.active { display: block; }
+        .locked-notice { text-align: center; padding: 40px 20px; color: #718096; font-size: 14px; }
+        .lock-icon { font-size: 48px; margin-bottom: 12px; block: inline-block; }
         
         .table-responsive { overflow-x: auto; margin-top: 10px; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
@@ -41,168 +52,211 @@
         .data-table th { background-color: #f7fafc; color: #4a5568; font-weight: bold; }
         
         .status-badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; display: inline-block; }
-        .status-badge.status-pending { background-color: #dd6b20; }
         .status-badge.status-approved { background-color: #38a169; }
         .status-badge.status-rejected { background-color: #e53e3e; }
+        .status-badge.status-pending { background-color: #dd6b20; }
         
         .batch-box { background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .filter-box { background: #f7fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; }
         .detail-block { line-height: 1.6; font-size: 13px; color: #2d3748; }
+        .login-success-tag { background-color: #c6f6d5; color: #22543d; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h1>雲端差勤與簽核管理系統</h1>
-        <p>簡化顯示格式 & 快速簽核篩選版</p>
+        <p>2026 勞基法整合 & 安全密碼登入版</p>
     </div>
 
     <div class="container">
-        <div class="card" style="border: 1px solid #2a5298;">
-            <h3>🔑 個人身份設定</h3>
-            <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>員工工號</label>
-                    <input type="text" id="emp-id" class="form-control" placeholder="請輸入工號" onchange="saveEmpInfo()">
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>員工姓名</label>
-                    <input type="text" id="emp-name" class="form-control" placeholder="請輸入姓名" onchange="saveEmpInfo()">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>身份權限切換</label>
-                <select id="user-role" class="form-control" onchange="verifyAdminRole()">
-                    <option value="user">一般員工 (僅看個人資訊)</option>
-                    <option value="admin">最高權限管理員</option>
-                </select>
+        
+        <div class="law-box">
+            <div class="law-title">⚖️ 2026 勞基法常用請假規則摘要</div>
+            <div class="law-grid">
+                <div class="law-item"><strong>🌴 特休假：</strong>滿半年3天；1年7天；2年10天；3年14天；5年15天。</div>
+                <div class="law-item"><strong>🤒 病假：</strong>未住院者1年內累計可請30天 (半薪)。</div>
+                <div class="law-item"><strong>🏠 事假：</strong>1年內累計可請14天 (無薪)。</div>
+                <div class="law-item"><strong>💍 婚假：</strong>可請8天 (薪資照給，可分三個月內請畢)。</div>
+                <div class="law-item"><strong>🍼 產檢/陪產檢假：</strong>各7天 (薪資照給)。</div>
+                <div class="law-item"><strong>⏰ 常規時數：</strong>每日8小時，每週40小時。</div>
             </div>
         </div>
 
-        <div id="page-clock" class="page active">
-            <div class="card">
-                <h3>⏰ 今日出勤打卡 (含GPS定位)</h3>
-                <button class="btn btn-success" id="btn-clock-in" onclick="submitClock('上班')">🌞 上班打卡</button>
-                <button class="btn btn-danger" id="btn-clock-out" onclick="submitClock('下班')">🌜 下班打卡</button>
-            </div>
-        </div>
-
-        <div id="page-leave" class="page">
-            <div class="card">
-                <h3>🌴 線上請假申請</h3>
+        <div class="card" style="border: 2px solid #2a5298;" id="identity-card">
+            <h3 id="login-title">🔒 員工系統登入驗證</h3>
+            
+            <div id="login-form-block">
                 <div class="form-group">
-                    <label>假別選擇</label>
-                    <select id="leave-type" class="form-control">
-                        <option value="特休">特休 (薪資照給)</option>
-                        <option value="病假">病假 (半薪)</option>
-                        <option value="事假">事假 (無薪)</option>
+                    <label>選擇員工姓名</label>
+                    <select id="emp-select" class="form-control" onchange="handleEmpSelectChange()">
+                        <option value="">-- 請選擇您的姓名 --</option>
+                        </select>
+                </div>
+                <div class="form-group">
+                    <label>員工工號 (自動帶入)</label>
+                    <input type="text" id="emp-id" class="form-control" placeholder="請先選擇姓名" disabled>
+                </div>
+                <div class="form-group">
+                    <label>登入驗證密碼 (預設為生日後四碼，例：0511)</label>
+                    <input type="password" id="emp-password" class="form-control" placeholder="請輸入4位數密碼" pattern="\d*" inputmode="numeric">
+                </div>
+                <button class="btn btn-primary" onclick="executeEmployeeLogin()">🔓 驗證並登入系統</button>
+            </div>
+
+            <div id="login-success-block" style="display: none;">
+                <button class="btn-logout" onclick="executeEmployeeLogout()">🚪 登出系統</button>
+                <div style="font-size: 15px;">
+                    歡迎回來，<strong id="user-display-name" style="color:#2a5298; font-size:18px;">-</strong>！<br>
+                    工號：<span id="user-display-id" style="font-weight:bold;">-</span>
+                </div>
+                <div class="login-success-tag">🟢 系統解鎖已就緒，可進行操作</div>
+                
+                <div class="form-group" style="margin-top: 15px; border-top: 1px dashed #e2e8f0; padding-top: 10px;">
+                    <label>身份權限切換（如需進入管理員審核後台）</label>
+                    <select id="user-role" class="form-control" onchange="verifyAdminRole()">
+                        <option value="user">一般員工 (僅看與申報個人資訊)</option>
+                        <option value="admin">最高權限管理員</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>日期 + 起始時間</label>
-                    <div class="datetime-group">
-                        <input type="date" id="leave-start-date" class="form-control" onchange="calculateHours('leave')">
-                        <input type="time" id="leave-start-time" class="form-control" onchange="calculateHours('leave')">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>日期 + 結束時間</label>
-                    <div class="datetime-group">
-                        <input type="date" id="leave-end-date" class="form-control" onchange="calculateHours('leave')">
-                        <input type="time" id="leave-end-time" class="form-control" onchange="calculateHours('leave')">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>共計時數 (已自動扣除中午1小時休息)</label>
-                    <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
-                </div>
-                <div class="form-group">
-                    <label>請假事由 / 備註內容</label>
-                    <input type="text" id="leave-reason" class="form-control" placeholder="請輸入事由">
-                </div>
-                <button class="btn btn-primary" onclick="submitLeave()">送出請假申請</button>
             </div>
         </div>
 
-        <div id="page-overtime" class="page">
-            <div class="card">
-                <h3>💪 加班延長工時申報</h3>
-                <div class="form-group">
-                    <label>日期 + 起始時間</label>
-                    <div class="datetime-group">
-                        <input type="date" id="ot-start-date" class="form-control" onchange="calculateHours('ot')">
-                        <input type="time" id="ot-start-time" class="form-control" onchange="calculateHours('ot')">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>日期 + 結束時間</label>
-                    <div class="datetime-group">
-                        <input type="date" id="ot-end-date" class="form-control" onchange="calculateHours('ot')">
-                        <input type="time" id="ot-end-time" class="form-control" onchange="calculateHours('ot')">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>共計時數 (已自動扣除中午1小時休息)</label>
-                    <input type="text" id="ot-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
-                </div>
-                <div class="form-group">
-                    <label>工作內容概述</label>
-                    <input type="text" id="ot-reason" class="form-control" placeholder="請填寫加班處理的工作內容">
-                </div>
-                <button class="btn btn-primary" onclick="submitOvertime()">送出加班申報</button>
-            </div>
+        <div id="login-gate-shield" class="card locked-notice">
+            <span class="lock-icon">🔒</span>
+            <p><strong>本系統目前處於鎖定狀態</strong></p>
+            <p style="margin-top: 5px; font-size: 13px;">請先在上方「員工系統登入驗證」卡片中選擇姓名並輸入密碼登入，方可解鎖打卡、請假、特休、加班等差勤功能。</p>
         </div>
 
-        <div id="page-history" class="page">
-            <div id="batch-panel" class="batch-box" style="display: none;">
-                <h4>🛠️ 批次審核操作面板</h4>
-                <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
-                    <div>
-                        <label style="font-size: 12px; font-weight: bold;">審核人員：</label>
-                        <select id="batch-reviewer" class="form-control" style="width:140px; padding:5px; display:inline-block;">
-                            <option value="老闆">老闆</option>
-                            <option value="管理者(虎尾)">管理者(虎尾)</option>
-                            <option value="管理者(麥寮)">管理者(麥寮)</option>
+        <div id="unlocked-features-zone" style="display: none;">
+            
+            <div id="page-clock" class="page active">
+                <div class="card">
+                    <h3>⏰ 今日出勤打卡 (含GPS定位)</h3>
+                    <button class="btn btn-success" id="btn-clock-in" onclick="submitClock('上班')">🌞 上班打卡</button>
+                    <button class="btn btn-danger" id="btn-clock-out" onclick="submitClock('下班')">🌜 下班打卡</button>
+                </div>
+            </div>
+
+            <div id="page-leave" class="page">
+                <div class="card">
+                    <h3>🌴 線上請假 / 特休申請</h3>
+                    <div class="form-group">
+                        <label>假別選擇</label>
+                        <select id="leave-type" class="form-control">
+                            <option value="特休">特休 (薪資照給)</option>
+                            <option value="病假">病假 (半薪)</option>
+                            <option value="事假">事假 (無薪)</option>
+                            <option value="婚假">婚假 (薪資照給)</option>
                         </select>
                     </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <input type="text" id="batch-comment" class="form-control" style="padding:5px;" placeholder="統一填寫審核意見(選填)">
+                    <div class="form-group">
+                        <label>日期 + 起始時間</label>
+                        <div class="datetime-group">
+                            <input type="date" id="leave-start-date" class="form-control" onchange="calculateHours('leave')">
+                            <input type="time" id="leave-start-time" class="form-control" onchange="calculateHours('leave')">
+                        </div>
                     </div>
-                    <div>
-                        <button onclick="executeBatchReview('核准')" class="btn btn-success btn-inline">批次核准</button>
-                        <button onclick="executeBatchReview('退回')" class="btn btn-danger btn-inline">批次退回</button>
+                    <div class="form-group">
+                        <label>日期 + 結束時間</label>
+                        <div class="datetime-group">
+                            <input type="date" id="leave-end-date" class="form-control" onchange="calculateHours('leave')">
+                            <input type="time" id="leave-end-time" class="form-control" onchange="calculateHours('leave')">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>共計時數 (已自動扣除中午1小時休息)</label>
+                        <input type="text" id="leave-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
+                    </div>
+                    <div class="form-group">
+                        <label>請假事由 / 備註內容</label>
+                        <input type="text" id="leave-reason" class="form-control" placeholder="請輸入事由">
+                    </div>
+                    <button class="btn btn-primary" onclick="submitLeave()">送出請假申請</button>
+                </div>
+            </div>
+
+            <div id="page-overtime" class="page">
+                <div class="card">
+                    <h3>💪 加班延長工時申報</h3>
+                    <div class="form-group">
+                        <label>日期 + 起始時間</label>
+                        <div class="datetime-group">
+                            <input type="date" id="ot-start-date" class="form-control" onchange="calculateHours('ot')">
+                            <input type="time" id="ot-start-time" class="form-control" onchange="calculateHours('ot')">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>日期 + 結束時間</label>
+                        <div class="datetime-group">
+                            <input type="date" id="ot-end-date" class="form-control" onchange="calculateHours('ot')">
+                            <input type="time" id="ot-end-time" class="form-control" onchange="calculateHours('ot')">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>共計時數 (已自動扣除中午1小時休息)</label>
+                        <input type="text" id="ot-hours" class="form-control" style="background-color: #e2e8f0;" readonly placeholder="自動計算">
+                    </div>
+                    <div class="form-group">
+                        <label>工作內容概述</label>
+                        <input type="text" id="ot-reason" class="form-control" placeholder="請填寫加班處理的工作內容">
+                    </div>
+                    <button class="btn btn-primary" onclick="submitOvertime()">送出加班申報</button>
+                </div>
+            </div>
+
+            <div id="page-history" class="page">
+                <div id="batch-panel" class="batch-box" style="display: none;">
+                    <h4>🛠️ 批次審核操作面板</h4>
+                    <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
+                        <div>
+                            <label style="font-size: 12px; font-weight: bold;">審核人員：</label>
+                            <select id="batch-reviewer" class="form-control" style="width:140px; padding:5px; display:inline-block;">
+                                <option value="老闆">老闆</option>
+                                <option value="管理者(虎尾)">管理者(虎尾)</option>
+                                <option value="管理者(麥寮)">管理者(麥寮)</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <input type="text" id="batch-comment" class="form-control" style="padding:5px;" placeholder="統一填寫審核意見(選填)">
+                        </div>
+                        <div>
+                            <button onclick="executeBatchReview('核准')" class="btn btn-success btn-inline">批次核准</button>
+                            <button onclick="executeBatchReview('退回')" class="btn btn-danger btn-inline">批次退回</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-box">
+                    <label style="font-size: 13px; font-weight: bold; color: #4a5568;">📌 狀態篩選：</label>
+                    <select id="status-filter" class="form-control" style="width: auto; padding: 4px 10px; font-size: 13px;" onchange="filterRecords()">
+                        <option value="all">🌐 顯示全部紀錄</option>
+                        <option value="送審中">⏳ 送審中 (優先簽核)</option>
+                        <option value="核准">✅ 已核准</option>
+                        <option value="退回">❌ 已退回</option>
+                        <option value="已打卡">📍 僅看打卡</option>
+                    </select>
+                </div>
+
+                <div class="card">
+                    <h3 id="history-title">🔍 個人出勤進度查詢</h3>
+                    <div id="loading" style="display:none; text-align:center; padding:10px; color:#666;">通訊中...</div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th id="th-select" style="display: none; width: 40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
+                                    <th style="width: 90px;">人員 / 工號</th>
+                                    <th>項目內容</th>
+                                    <th style="width: 80px;">審核狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-data"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <div class="filter-box">
-                <label style="font-size: 13px; font-weight: bold; color: #4a5568;">📌 狀態篩選：</label>
-                <select id="status-filter" class="form-control" style="width: auto; padding: 4px 10px; font-size: 13px;" onchange="filterRecords()">
-                    <option value="送審中">⏳ 送審中 (優先簽核)</option>
-                    <option value="all">🌐 顯示全部紀錄</option>
-                    <option value="核准">✅ 已核准</option>
-                    <option value="退回">❌ 已退回</option>
-                    <option value="已打卡">📍 僅看打卡</option>
-                </select>
-            </div>
-
-            <div class="card">
-                <h3 id="history-title">🔍 個人出勤進度查詢</h3>
-                <div id="loading" style="display:none; text-align:center; padding:10px; color:#666;">通訊中...</div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th id="th-select" style="display: none; width: 40px;"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
-                                <th style="width: 90px;">人員 / 工號</th>
-                                <th>項目內容</th>
-                                <th style="width: 80px;">審核狀態</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-data"></tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -217,30 +271,110 @@
     </div>
 
     <script>
-        // ⚠️ 請在此處填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
+        // ⚠️ 請填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
+        // 👥 員工資料名冊庫 (張先生，您可以在此欄自行新增、刪除或修改員工與其密碼設定)
+        const EMPLOYEE_DATABASE = [
+            { id: "A001", name: "賴柏全", password: "0726" },
+            { id: "A002", name: "廖惠萍", password: "1113" },
+            { id: "A003", name: "張富傑", password: "0511" },
+            { id: "A004", name: "陳阿華", password: "1130" },
+            { id: "A004", name: "陳阿華", password: "1130" },
+            { id: "A004", name: "陳阿華", password: "1130" },
+            { id: "A004", name: "陳阿華", password: "1130" },
+            { id: "A004", name: "陳阿華", password: "1130" }
+            ];
+
+        let loggedInUser = null; // 快取目前成功登入的員工資料
         let allFetchedRecords = []; 
 
         document.addEventListener("DOMContentLoaded", function() {
-            if (localStorage.getItem('clock_emp_id')) document.getElementById('emp-id').value = localStorage.getItem('clock_emp_id');
-            if (localStorage.getItem('clock_emp_name')) document.getElementById('emp-name').value = localStorage.getItem('clock_emp_name');
+            initEmployeeSelectJson();
+            // 檢查本地快取，看員工上次是否已經登入過
+            const cachedId = localStorage.getItem('login_session_id');
+            if (cachedId) {
+                const user = EMPLOYEE_DATABASE.find(u => u.id === cachedId);
+                if(user) {
+                    loggedInUser = user;
+                    applyLoginSuccessState();
+                }
+            }
         });
 
-        function saveEmpInfo() {
-            localStorage.setItem('clock_emp_id', document.getElementById('emp-id').value.trim());
-            localStorage.setItem('clock_emp_name', document.getElementById('emp-name').value.trim());
-            if(document.getElementById('page-history').classList.contains('active')) {
-                const role = document.getElementById('user-role').value;
-                fetchHistory(role === 'admin' ? 'admin' : 'user');
+        // 初始化姓名下拉選單
+        function initEmployeeSelectJson() {
+            const selectEl = document.getElementById('emp-select');
+            EMPLOYEE_DATABASE.forEach(emp => {
+                const opt = document.createElement('option');
+                opt.value = emp.id;
+                opt.textContent = emp.name;
+                selectEl.appendChild(opt);
+            });
+        }
+
+        // 下拉選單選定姓名後，自動帶入工號
+        function handleEmpSelectChange() {
+            const selectedId = document.getElementById('emp-select').value;
+            document.getElementById('emp-id').value = selectedId;
+            document.getElementById('emp-password').value = ""; // 清空密碼欄
+        }
+
+        // 驗證登入
+        function executeEmployeeLogin() {
+            const selectedId = document.getElementById('emp-select').value;
+            const inputPwd = document.getElementById('emp-password').value.trim();
+            
+            if(!selectedId) { alert("❌ 請先選擇您的姓名！"); return; }
+            if(!inputPwd) { alert("❌ 請輸入驗證密碼！"); return; }
+            
+            const matchedUser = EMPLOYEE_DATABASE.find(u => u.id === selectedId);
+            
+            if (matchedUser && matchedUser.password === inputPwd) {
+                alert(`🎉 驗證成功！歡迎 ${matchedUser.name} 使用系統。`);
+                loggedInUser = matchedUser;
+                localStorage.setItem('login_session_id', matchedUser.id);
+                applyLoginSuccessState();
+            } else {
+                alert("❌ 密碼錯誤！請重新輸入（提示：生日後四碼）。");
+                document.getElementById('emp-password').value = "";
             }
         }
 
-        function validateIdentity() {
-            const empId = document.getElementById('emp-id').value.trim();
-            const empName = document.getElementById('emp-name').value.trim();
-            if (!empId || !empName) { alert("❌ 請先填寫工號與姓名！"); return false; }
-            return { empId, empName };
+        // 登入成功的介面切換
+        function applyLoginSuccessState() {
+            document.getElementById('login-form-block').style.display = "none";
+            document.getElementById('login-success-block').style.display = "block";
+            document.getElementById('user-display-name').innerText = loggedInUser.name;
+            document.getElementById('user-display-id').innerText = loggedInUser.id;
+            
+            // 移除鎖定擋板，顯現功能
+            document.getElementById('login-gate-shield').style.display = "none";
+            document.getElementById('unlocked-features-zone').style.display = "block";
+            
+            switchPage('clock');
+        }
+
+        // 登出系統
+        function executeEmployeeLogout() {
+            if(!confirm("確定要登出系統嗎？")) return;
+            localStorage.removeItem('login_session_id');
+            loggedInUser = null;
+            
+            // 回復未登入外觀
+            document.getElementById('login-form-block').style.display = "block";
+            document.getElementById('login-success-block').style.display = "none";
+            document.getElementById('emp-select').value = "";
+            document.getElementById('emp-id').value = "";
+            document.getElementById('emp-password').value = "";
+            document.getElementById('user-role').value = "user";
+            
+            // 啟動鎖定擋板
+            document.getElementById('login-gate-shield').style.display = "block";
+            document.getElementById('unlocked-features-zone').style.display = "none";
+            document.getElementById('nav-admin-btn').style.display = "none";
+            
+            switchPage('clock');
         }
 
         function verifyAdminRole() {
@@ -267,6 +401,12 @@
         }
 
         function switchPage(pageId) {
+            // 如果未登入，強制待在鎖定畫面，不切換分頁功能
+            if(!loggedInUser && pageId !== 'clock') {
+                alert("🔒 請先完成登入驗證！");
+                return;
+            }
+
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             
@@ -277,11 +417,16 @@
                 document.getElementById('th-select').style.display = "table-cell";
                 fetchHistory('admin');
             } else {
-                document.getElementById('page-' + pageId).classList.add('active');
+                if(document.getElementById('page-' + pageId)) {
+                    document.getElementById('page-' + pageId).classList.add('active');
+                }
                 document.getElementById('batch-panel').style.display = "none";
                 document.getElementById('th-select').style.display = "none";
+                
                 const idx = pageId === 'clock' ? 0 : pageId === 'leave' ? 1 : pageId === 'overtime' ? 2 : 3;
-                document.querySelectorAll('.nav-bar .nav-item')[idx].classList.add('active');
+                if(document.querySelectorAll('.nav-bar .nav-item')[idx]){
+                    document.querySelectorAll('.nav-bar .nav-item')[idx].classList.add('active');
+                }
                 if (pageId === 'history') {
                     document.getElementById('status-filter').value = "all"; 
                     fetchHistory('user');
@@ -301,7 +446,6 @@
             } catch(e) { return dtStr; }
         }
 
-        // 🛠️ 核心微調：加入智慧扣除中午1小時 (12:00 ~ 13:00) 的勞基法邏輯
         function calculateHours(prefix) {
             const d1 = document.getElementById(prefix + '-start-date').value;
             const t1 = document.getElementById(prefix + '-start-time').value;
@@ -322,46 +466,34 @@
                 return;
             }
 
-            // 先算出初步總小時
             let totalHours = diffMs / (1000 * 60 * 60);
 
-            // 智慧精算是否跨越中午休息區間 (12:00 ~ 13:00)
-            // 將起訖時間轉換成當天的「分鐘數」來做比對
             let startMin = start.getHours() * 60 + start.getMinutes();
             let endMin = end.getHours() * 60 + end.getMinutes();
             
-            // 如果是在同一天內
             if (d1 === d2) {
-                // 情境 A：完整跨越中午 (例如 08:00 到 17:00)
                 if (startMin <= 12 * 60 && endMin >= 13 * 60) {
                     totalHours -= 1;
                 }
-                // 情境 B：切在中午前半段 (例如 08:00 到 12:30)
                 else if (startMin <= 12 * 60 && endMin > 12 * 60 && endMin < 13 * 60) {
                     let overlapMin = endMin - (12 * 60);
                     totalHours -= (overlapMin / 60);
                 }
-                // 情境 C：切在中午後半段 (例如 12:30 到 17:00)
                 else if (startMin > 12 * 60 && startMin < 13 * 60 && endMin >= 13 * 60) {
                     let overlapMin = (13 * 60) - startMin;
                     totalHours -= (overlapMin / 60);
                 }
-                // 情境 D：起訖都在中午一小時內 (例如 12:15 到 12:45)
                 else if (startMin >= 12 * 60 && endMin <= 13 * 60) {
                     totalHours = 0;
                 }
             } else {
-                // 如果是跨天（例如跨了多天，通常會每天自動扣除，此處以單日精準常規為主）
-                // 若未來有長期請假需求，可在這邊擴充，目前維持按基準跨天扣除
                 let daysDiff = Math.floor((new Date(d2) - new Date(d1)) / (1000 * 60 * 60 * 24));
-                totalHours -= (daysDiff * 1); // 每天扣一小時午休
+                totalHours -= (daysDiff * 1); 
                 if (startMin <= 12 * 60) totalHours -= 1;
                 if (endMin >= 13 * 60) totalHours -= 1;
             }
 
-            // 確保最低不為負數
             if(totalHours < 0) totalHours = 0;
-
             document.getElementById(prefix + '-hours').value = totalHours.toFixed(1) + " 小時";
         }
 
@@ -376,11 +508,11 @@
         }
 
         function submitClock(type) {
-            const identity = validateIdentity(); if(!identity) return;
+            if(!loggedInUser) return;
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const locStr = pos.coords.latitude.toFixed(6) + ", " + pos.coords.longitude.toFixed(6);
-                    const payload = { action: "clock", type: type, location: locStr, empId: identity.empId, empName: identity.empName };
+                    const payload = { action: "clock", type: type, location: locStr, empId: loggedInUser.id, empName: loggedInUser.name };
                     fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) })
                     .then(res => res.json()).then(res => {
                         if(res.status === "success") { alert(`${type}打卡成功！`); } else { alert(res.message); }
@@ -392,7 +524,7 @@
         }
 
         function submitLeave() {
-            const identity = validateIdentity(); if(!identity) return;
+            if(!loggedInUser) return;
             const d1 = document.getElementById('leave-start-date').value;
             const t1 = document.getElementById('leave-start-time').value;
             const d2 = document.getElementById('leave-end-date').value;
@@ -409,12 +541,12 @@
                 end: d2 + " " + t2, 
                 hours: hours,
                 reason: reason, 
-                empId: identity.empId, 
-                empName: identity.empName 
+                empId: loggedInUser.id, 
+                empName: loggedInUser.name 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 if(res.status==='success'){ 
-                    alert("🎉 請假單已成功送出！"); 
+                    alert("🎉 差勤申請單已成功送出！"); 
                     clearFormFields('leave'); 
                     switchPage('history'); 
                 }
@@ -422,7 +554,7 @@
         }
 
         function submitOvertime() {
-            const identity = validateIdentity(); if(!identity) return;
+            if(!loggedInUser) return;
             const d1 = document.getElementById('ot-start-date').value;
             const t1 = document.getElementById('ot-start-time').value;
             const d2 = document.getElementById('ot-end-date').value;
@@ -438,8 +570,8 @@
                 end: d2 + " " + t2, 
                 hours: hours,
                 reason: reason, 
-                empId: identity.empId, 
-                empName: identity.empName 
+                empId: loggedInUser.id, 
+                empName: loggedInUser.name 
             };
             fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) }).then(res=>res.json()).then(res=>{
                 if(res.status==='success'){ 
@@ -451,14 +583,14 @@
         }
 
         function fetchHistory(currentMode) {
-            const identity = validateIdentity(); if(!identity) return;
+            if(!loggedInUser) return;
             const loading = document.getElementById('loading');
             
             document.getElementById('history-title').innerText = currentMode === 'admin' ? "🛠️ 最高權限審核後台" : "🔍 個人出勤進度查詢";
             loading.style.display = "block";
             document.getElementById('select-all').checked = false;
 
-            fetch(`${GAS_URL}?mode=${currentMode}&empId=${identity.empId}`)
+            fetch(`${GAS_URL}?mode=${currentMode}&empId=${loggedInUser.id}`)
             .then(res => res.json())
             .then(data => {
                 loading.style.display = "none";
