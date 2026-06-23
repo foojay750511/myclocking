@@ -42,7 +42,7 @@
         .page { display: none; }
         .page.active { display: block; }
         .locked-notice { text-align: center; padding: 40px 20px; color: #718096; font-size: 14px; }
-        .lock-icon { font-size: 48px; margin-bottom: 12px; block: inline-block; }
+        .lock-icon { font-size: 48px; margin-bottom: 12px; display: inline-block; }
         
         .table-responsive { overflow-x: auto; margin-top: 10px; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
@@ -261,7 +261,7 @@
     </div>
 
     <script>
-        // ⚠️ 請填入您最新的 Google Apps Script 網頁應用程式 URL ⚠️
+        // ⚠️ 請記得填入您部署產生的 GAS 網頁應用程式 URL ⚠️
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwsqcf-UeAGGjugJto0yZlM36JZ0vUGgs0YJb5salA3bNXJH5OaCZdZNGtj_pf7x37Q/exec"; 
 
         const EMPLOYEE_DATABASE = [
@@ -277,8 +277,8 @@
             { id: "A010", name: "張乃云", password: "0130" },
             { id: "A011", name: "朱章鴻", password: "0911" },
             { id: "A012", name: "陳祝賢", password: "0428" },
-            { id: "A013", name: "陳秋如", password: "1111" },
-            { id: "A014", name: "洪翠伶", password: "0314" }
+            { id: "A013", name: "陳秋如", password: "0806" }, // ✨ 密碼已校正為 0806
+            { id: "A014", name: "洪翠伶", password: "0314" }  // ✨ 密碼已校正為 0314
         ];
 
         let loggedInUser = null; 
@@ -427,21 +427,15 @@
             }
         }
 
-        // ⚡ 超強安全日期字串格式化（直接進行字串過濾，避免手機瀏覽器時區轉換少 8 小時）
         function cleanDateTimeStr(dtStr) {
             if(!dtStr) return "";
             let s = dtStr.toString().trim();
-            
-            // 處理常規的 JavaScript Date 轉出字串 (如 Tue Jun 23 2026 14:00:00 GMT+0800)
             if (s.includes('GMT')) {
                 const parts = s.split(' ');
                 if (parts.length >= 5) {
-                    // 嘗試抓取日期與時間部分
-                    const timePart = parts[4].substring(0, 5); // 14:00
                     return s.substring(0, 16); 
                 }
             }
-            // 處理 ISO 格式 (2026-06-23T06:00:00.000Z) -> 改為直接裁切，不經過 timezone 運算
             if (s.includes('T')) {
                 s = s.replace('T', ' ');
             }
@@ -524,8 +518,6 @@
             const userReason = document.getElementById('leave-reason').value.trim();
             
             if(!d1 || !t1 || !d2 || !t2) { alert("請填寫完整請假起訖時間！"); return; }
-            
-            // 💡 關鍵修正：因為試算表沒有「時數」欄位，直接將時數與事由包在一起，避免欄位錯位！
             const combinedReason = `[共計:${hours}] ${userReason}`;
             
             const payload = { 
@@ -559,7 +551,6 @@
             if(!otDate) { alert("❌ 請選擇加班日期！"); return; }
             if(!otHours || otHours <= 0) { alert("❌ 請輸入有效的預計加班時數！"); return; }
             
-            // 💡 完全對應試算表欄位的數據結構包裝
             const payload = { 
                 action: "overtime", 
                 date: otDate, 
@@ -629,7 +620,6 @@
                 if(item.mainType === "打卡") {
                     contentHtml = `<div class="detail-block"><strong>[打卡]</strong> ${item.type}<br>時間：${cleanDateTimeStr(item.time)}</div>`;
                 } else if(item.mainType === "加班") {
-                    // 加班單純欄位呈現
                     contentHtml = `
                         <div class="detail-block">
                             <strong>[加班] 延長工時</strong><br>
